@@ -4,13 +4,14 @@ import { User_Type } from "@/types";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
-const LoginWithGoogle = ({ callbackURL, loginAs, onSuccess }: { callbackURL: string; loginAs: User_Type; onSuccess?: () => void }) => {
+const LoginWithGoogle = ({ callbackURL, loginAs, onSuccess, referralCode }: { callbackURL: string; loginAs: User_Type; onSuccess?: () => void; referralCode?: string }) => {
   const { handleLoginWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     try {
-      await handleLoginWithGoogle(callbackURL, loginAs);
+      setIsLoading(true);
+      await handleLoginWithGoogle(callbackURL, loginAs, referralCode);
       onSuccess?.();
     } catch (error) {
       // Error handling is done in the AuthContext

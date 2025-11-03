@@ -17,37 +17,28 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-
-interface VoteRecord {
-  id: string;
-  modelName: string;
-  modelProfileImage: string;
-  contestName: string;
-  contestCategory: string;
-  voteType: 'free' | 'premium';
-  voteCount: number;
-  timestamp: string;
-  contestEndDate: string;
-  contestStatus: 'active' | 'ended' | 'upcoming';
-  modelRank?: number;
-  totalContestVotes: number;
-}
+import { useVoteHistory } from '@/hooks/api/useVotes';
 
 export function VoteHistory() {
   const { user } = useAuth();
-  const [voteHistory, setVoteHistory] = useState<VoteRecord[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<VoteRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedVoteType, setSelectedVoteType] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [page, setPage] = useState(1);
+  
+  // Fetch vote history from API
+  const { data: historyData, isLoading } = useVoteHistory(user?.profile?.id, page, 50);
+  
+  const voteHistory = historyData?.votes || [];
+  const stats = historyData?.stats || {
     totalVotes: 0,
     freeVotes: 0,
-    premiumVotes: 0,
+    paidVotes: 0,
     contestsVotedIn: 0,
-    favoriteModels: 0
-  });
+    uniqueModels: 0,
+  };
+  
+  const [filteredHistory, setFilteredHistory] = useState(voteHistory);
 
   const filters = [
     { value: 'all', label: 'All Votes' },
@@ -58,106 +49,9 @@ export function VoteHistory() {
 
   const voteTypes = [
     { value: 'all', label: 'All Types' },
-    { value: 'free', label: 'Free Votes' },
-    { value: 'premium', label: 'Premium Votes' }
+    { value: 'FREE', label: 'Free Votes' },
+    { value: 'PAID', label: 'Paid Votes' }
   ];
-
-  useEffect(() => {
-    // Fetch vote history from API
-    const fetchVoteHistory = async () => {
-      try {
-        // TODO: Replace with actual API call
-        // const response = await getVoteHistory(user?.profile?.id);
-        // setVoteHistory(response.data);
-        
-        // Mock data for now
-        const mockData: VoteRecord[] = [
-          {
-            id: '1',
-            modelName: 'Sarah Johnson',
-            modelProfileImage: '/api/placeholder/100/100',
-            contestName: 'Summer Glow 2025',
-            contestCategory: 'boudoir',
-            voteType: 'premium',
-            voteCount: 5,
-            timestamp: '2025-01-28T10:30:00Z',
-            contestEndDate: '2025-02-15T23:59:59Z',
-            contestStatus: 'active',
-            modelRank: 3,
-            totalContestVotes: 156
-          },
-          {
-            id: '2',
-            modelName: 'Emma Davis',
-            modelProfileImage: '/api/placeholder/100/100',
-            contestName: 'Urban Elegance',
-            contestCategory: 'fashion',
-            voteType: 'free',
-            voteCount: 1,
-            timestamp: '2025-01-27T15:45:00Z',
-            contestEndDate: '2025-01-30T23:59:59Z',
-            contestStatus: 'active',
-            modelRank: 1,
-            totalContestVotes: 89
-          },
-          {
-            id: '3',
-            modelName: 'Mia Rodriguez',
-            modelProfileImage: '/api/placeholder/100/100',
-            contestName: 'Artistic Expression',
-            contestCategory: 'artistic',
-            voteType: 'premium',
-            voteCount: 10,
-            timestamp: '2025-01-26T09:15:00Z',
-            contestEndDate: '2025-03-01T23:59:59Z',
-            contestStatus: 'active',
-            modelRank: 2,
-            totalContestVotes: 234
-          },
-          {
-            id: '4',
-            modelName: 'Alex Thompson',
-            modelProfileImage: '/api/placeholder/100/100',
-            contestName: 'Winter Beauty',
-            contestCategory: 'portrait',
-            voteType: 'free',
-            voteCount: 1,
-            timestamp: '2025-01-20T14:20:00Z',
-            contestEndDate: '2025-01-25T23:59:59Z',
-            contestStatus: 'ended',
-            modelRank: 5,
-            totalContestVotes: 67
-          }
-        ];
-        
-        setVoteHistory(mockData);
-        
-        // Calculate stats
-        const totalVotes = mockData.reduce((sum, vote) => sum + vote.voteCount, 0);
-        const freeVotes = mockData.filter(vote => vote.voteType === 'free').reduce((sum, vote) => sum + vote.voteCount, 0);
-        const premiumVotes = mockData.filter(vote => vote.voteType === 'premium').reduce((sum, vote) => sum + vote.voteCount, 0);
-        const contestsVotedIn = new Set(mockData.map(vote => vote.contestName)).size;
-        const favoriteModels = new Set(mockData.map(vote => vote.modelName)).size;
-        
-        setStats({
-          totalVotes,
-          freeVotes,
-          premiumVotes,
-          contestsVotedIn,
-          favoriteModels
-        });
-        
-      } catch (error) {
-        console.error('Error fetching vote history:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user?.profile?.id) {
-      fetchVoteHistory();
-    }
-  }, [user?.profile?.id]);
 
   useEffect(() => {
     // Filter vote history based on search and filters
@@ -202,10 +96,12 @@ export function VoteHistory() {
   }, [voteHistory, searchTerm, selectedFilter, selectedVoteType]);
 
   const getContestStatusBadge = (status: string, endDate: string) => {
+    if (!endDate) return <Badge variant="secondary">{status}</Badge>;
+    
     const end = new Date(endDate);
     const now = new Date();
     
-    if (status === 'ended' || end < now) {
+    if (status === 'ENDED' || end < now) {
       return <Badge variant="secondary">Ended</Badge>;
     } else if (end.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
       return <Badge variant="destructive">Ending Soon</Badge>;
@@ -215,10 +111,10 @@ export function VoteHistory() {
   };
 
   const getVoteTypeBadge = (voteType: string) => {
-    return voteType === 'premium' ? (
+    return voteType === 'PAID' ? (
       <Badge variant="default" className="bg-yellow-100 text-yellow-800">
         <Star className="w-3 h-3 mr-1" />
-        Premium
+        Paid
       </Badge>
     ) : (
       <Badge variant="outline">
@@ -263,7 +159,7 @@ export function VoteHistory() {
             <Heart className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalVotes}</div>
+              <div className="text-2xl font-bold">{stats.totalVotes}</div>
             <p className="text-xs text-muted-foreground">
               All time votes cast
             </p>
@@ -285,13 +181,13 @@ export function VoteHistory() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Votes</CardTitle>
+            <CardTitle className="text-sm font-medium">Paid Votes</CardTitle>
             <Star className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.premiumVotes}</div>
+            <div className="text-2xl font-bold">{stats.paidVotes}</div>
             <p className="text-xs text-muted-foreground">
-              Premium votes used
+              Paid votes used
             </p>
           </CardContent>
         </Card>
@@ -315,7 +211,7 @@ export function VoteHistory() {
             <TrendingUp className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.favoriteModels}</div>
+            <div className="text-2xl font-bold">{stats.uniqueModels}</div>
             <p className="text-xs text-muted-foreground">
               Unique models voted for
             </p>
@@ -396,7 +292,7 @@ export function VoteHistory() {
                 >
                   {/* Model Image */}
                   <img
-                    src={vote.modelProfileImage}
+                    src={vote.modelProfileImage || '/placeholder.svg'}
                     alt={vote.modelName}
                     className="w-16 h-16 rounded-full object-cover"
                   />
@@ -414,10 +310,6 @@ export function VoteHistory() {
                         <span>{vote.contestName}</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="capitalize">{vote.contestCategory}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
                         <Heart className="w-4 h-4" />
                         <span>{vote.voteCount} vote{vote.voteCount !== 1 ? 's' : ''}</span>
                       </div>
@@ -428,21 +320,21 @@ export function VoteHistory() {
                         <Clock className="w-3 h-3" />
                         <span>{formatDistanceToNow(new Date(vote.timestamp), { addSuffix: true })}</span>
                       </div>
-                      {vote.modelRank && (
-                        <div className="flex items-center space-x-1">
-                          <TrendingUp className="w-3 h-3" />
-                          <span>Rank #{vote.modelRank} of {vote.totalContestVotes} votes</span>
-                        </div>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Status: {vote.contestStatus}</span>
+                      </div>
                     </div>
                   </div>
                   
                   {/* Contest Status */}
                   <div className="flex flex-col items-end space-y-2">
-                    {getContestStatusBadge(vote.contestStatus, vote.contestEndDate)}
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4 mr-1" />
-                      View Contest
+                    {getContestStatusBadge(vote.contestStatus, vote.contestEndDate || '')}
+                    <Button variant="outline" size="sm" as Child>
+                      <a href={`/competitions/${vote.contestSlug}`}>
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Contest
+                      </a>
                     </Button>
                   </div>
                 </div>

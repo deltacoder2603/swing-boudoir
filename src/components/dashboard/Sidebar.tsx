@@ -1,4 +1,4 @@
-import { Bell, User, Users, Trophy, Vote, Gift, Settings as SettingsIcon, HelpCircle, FileText, Shield, Lock, LogOut, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Bell, User, Users, Trophy, Vote, Gift, Settings as SettingsIcon, HelpCircle, FileText, Shield, Lock, LogOut, ChevronLeft, ChevronRight, TrendingUp, Share2, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // import { DashboardSection } from "@/pages/Dashboard";
 
@@ -20,6 +20,8 @@ const sidebarItemsMain = [
   { id: "profile" as DashboardSection, label: "Profile", icon: Users },
   { id: "competitions" as DashboardSection, label: "Competitions", icon: Trophy },
   { id: "votes" as DashboardSection, label: "Votes", icon: Vote },
+  { id: "referrals" as DashboardSection, label: "Referrals", icon: Share2 },
+  { id: "voters-leaderboard" as DashboardSection, label: "Voters Leaderboard", icon: Crown },
   // { id: "prize-history" as DashboardSection, label: "Prize History", icon: Gift },
   // { id: "leaderboard" as DashboardSection, label: "Leaderboard", icon: TrendingUp },
   { id: "settings" as DashboardSection, label: "Settings", icon: SettingsIcon },

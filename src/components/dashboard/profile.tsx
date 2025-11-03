@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { useJoinedCompetitions } from "@/contexts/JoinedCompetitionsContext";
 import { useJoinedContests } from "@/hooks/api/useContests";
 import { useProfile } from "@/hooks/api/useProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ export function PublicProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { joinedCompetitions: localJoinedCompetitions } = useJoinedCompetitions();
   const [timeLeft, setTimeLeft] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<{ url: string; caption: string } | null>(null);
@@ -34,7 +36,39 @@ export function PublicProfile() {
   const { data: profileStats, isLoading: isLoadingStats, error: statsError } = useProfileStats(userProfile?.id || "");
 
   const { data: joinedContestsData, isLoading: isLoadingJoined } = useJoinedContests(user?.profileId || "", 1, 50);
-  const joinedCompetitions = useMemo(() => joinedContestsData?.data || [], [joinedContestsData?.data]);
+  
+  // Combine API joined contests with local state (for competitions joined but not yet synced)
+  const joinedCompetitions = useMemo(() => {
+    const apiJoinedContests = joinedContestsData?.data || [];
+    
+    // Convert local joined competitions from context to Contest format
+    const localContests: Contest[] = localJoinedCompetitions.map(comp => ({
+      id: comp.id,
+      name: comp.name,
+      slug: comp.slug,
+      prizePool: comp.prizePool,
+      endDate: comp.endDate,
+      startDate: new Date().toISOString(),
+      status: "ACTIVE" as const,
+      visibility: "PUBLIC" as const,
+      isFeatured: true,
+      isVerified: true,
+      isVotingEnabled: true,
+      rules: `Show your best ${comp.name.toLowerCase()} and get votes from the community!`,
+      requirements: "Must be 18+ years old",
+      images: comp.coverImage ? [{ url: comp.coverImage, id: "cover" }] : [{ url: "/placeholder.svg", id: "placeholder" }],
+      awards: [
+        { id: "award1", name: "First Place", icon: "🥇" },
+        { id: "award2", name: "Second Place", icon: "🥈" },
+        { id: "award3", name: "Third Place", icon: "🥉" }
+      ],
+      createdAt: comp.joinedAt,
+      updatedAt: comp.joinedAt,
+      winnerProfileId: null
+    }));
+    
+    return [...apiJoinedContests, ...localContests];
+  }, [joinedContestsData?.data, localJoinedCompetitions]);
 
   // Countdown timer for joined contests
   useEffect(() => {

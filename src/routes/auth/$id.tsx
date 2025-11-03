@@ -17,6 +17,7 @@ interface AuthSearchParams {
   error?: string;
   redirectTo?: string;
   userType?: "MODEL" | "VOTER";
+  referralCode?: string;
 }
 
 export const Route = createFileRoute("/auth/$id")({
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/auth/$id")({
       error: typeof search.error === "string" ? search.error : undefined,
       redirectTo: typeof search.redirectTo === "string" ? search.redirectTo : undefined,
       userType: search.userType === "MODEL" || search.userType === "VOTER" ? (search.userType as "MODEL" | "VOTER") : undefined,
+      referralCode: typeof search.referralCode === "string" ? search.referralCode : undefined,
     };
   },
   params: {
@@ -72,6 +74,7 @@ const OAuthCallbackPage = () => {
   const hasHandledRef = useRef(false);
   const redirectTo = search.redirectTo as string | undefined;
   const desiredUserType = search.userType as "MODEL" | "VOTER" | undefined;
+  const referralCode = search.referralCode as string | undefined;
 
   useEffect(() => {
     if (hasHandledRef.current) return;
@@ -85,6 +88,25 @@ const OAuthCallbackPage = () => {
               await createVoterProfile.mutateAsync(session.user.id);
             }
           }
+          
+          // Process referral if provided (only for new users who don't already have a referrer)
+          if (referralCode && session.user && !session.user.referredById) {
+            try {
+              const { authApi } = await import("@/lib/api");
+              await authApi.post(`/referrals/process`, {
+                referralCode,
+                userId: session.user.id,
+              });
+              toast.success("Referral Applied!", {
+                description: `You were successfully referred by ${referralCode}. You'll receive bonus votes!`,
+              });
+            } catch (error) {
+              console.warn("Failed to process referral:", error);
+              // Don't fail authentication if referral processing fails
+            }
+          } else if (referralCode && session.user?.referredById) {
+            console.log("User already has a referrer, skipping referral processing");
+          }
         } catch (e) {
           console.warn("Failed to finalize user type on callback:", e);
         } finally {
@@ -97,8 +119,9 @@ const OAuthCallbackPage = () => {
         }
 
         if (session.user && session.user.type === "VOTER") {
-          navigate({ to: redirectTo, replace: true });
           toast.success("Successfully signed in with Google");
+          // Use window.location for voter redirect to avoid routing issues
+          window.location.href = redirectTo || "/voters/";
           return;
         }
 

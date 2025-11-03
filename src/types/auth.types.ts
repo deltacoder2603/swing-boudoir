@@ -40,6 +40,7 @@ export interface SignUpWithEmailRequest {
   image?: string | undefined
   callbackURL?: string | null
   rememberMe?: boolean | undefined
+  referralCode?: string | undefined
 }
 
 export interface SignInWithEmailRequest {

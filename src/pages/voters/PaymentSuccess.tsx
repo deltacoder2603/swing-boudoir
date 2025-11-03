@@ -6,6 +6,8 @@ import { CheckCircle, Heart, Star, Trophy, ArrowRight, Download, Share2, Home, U
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { api, isApiSuccess } from "@/lib/api";
 
 interface PaymentDetails {
   packageName: string;
@@ -18,23 +20,66 @@ interface PaymentDetails {
 export function PaymentSuccess() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const searchParams = useSearch({ strict: false, shouldThrow: false });
+  const queryClient = useQueryClient();
+  const searchParams = useSearch({ strict: false, shouldThrow: false }) as {
+    callback?: string;
+    session_id?: string;
+  };
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
+  const [hasShownToast, setHasShownToast] = useState(false);
 
   const callback = searchParams?.callback;
+  const sessionId = searchParams?.session_id;
   const navigate = useNavigate();
 
+  // Show success toast and verify payment
   useEffect(() => {
-    console.log(callback);
+    if (hasShownToast) return;
+
+    // Show success toast immediately
+    toast({
+      title: "🎉 Payment Successful!",
+      description: "Your votes have been added to your account. You can start voting now!",
+      duration: 5000,
+    });
+    setHasShownToast(true);
+
+    // Verify payment status if session_id is available
+    if (sessionId) {
+      api.get(`/payments/status/${sessionId}`).then((response) => {
+        if (isApiSuccess(response) && response.data.status === "completed") {
+          // Invalidate user data to refresh vote count
+          queryClient.invalidateQueries({ queryKey: ["voter-stats", user?.profile?.id] });
+          queryClient.invalidateQueries({ queryKey: ["available-votes", user?.profile?.id] });
+          
+          if (response.data.voteCount) {
+            toast({
+              title: "✅ Votes Added!",
+              description: `${response.data.voteCount} votes have been successfully added to your account.`,
+              duration: 4000,
+            });
+          }
+        }
+      }).catch((error) => {
+        console.error("Error verifying payment:", error);
+        // Don't show error - webhook might still be processing
+      });
+    } else {
+      // If no session_id, still invalidate to refresh data (webhook might have processed)
+      queryClient.invalidateQueries({ queryKey: ["voter-stats", user?.profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ["available-votes", user?.profile?.id] });
+    }
+
+    // Redirect after showing toast
     if (callback) {
       const timeout = setTimeout(() => {
-        navigate({ to: callback, reloadDocument: true, replace: false });
-      }, 6000);
+        navigate({ to: callback as any, replace: true });
+      }, 3000);
 
       return () => clearTimeout(timeout);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callback]);
+  }, [sessionId, callback, hasShownToast]);
 
 
   const handleShareSuccess = async () => {

@@ -142,7 +142,10 @@ const apiRequest = async <T = any>(
       responseData = await response.text();
     }
 
-    console.log(`API Response: ${response.status} ${response.statusText}`, responseData);
+    // Log API responses only in development
+    if (import.meta.env.DEV) {
+      console.log(`API Response: ${response.status} ${response.statusText}`, responseData);
+    }
 
     // Handle successful responses
     if (response.ok) {
@@ -224,8 +227,10 @@ export const authApi = {
   loginWithUsername: <T = any>(credentials: SignInWithUsernameRequest) =>
     api.post<T>('/sign-in/username', credentials, { baseUrl: 'auth', requireAuth: false }),
 
-  loginWithGoogle: <T = any>(data: { provider: string; callbackURL: string; type?: User_Type }) =>
-    api.post<T>('/sign-in/social?type=' + data.type, data, { baseUrl: 'auth', requireAuth: false, }),
+  loginWithGoogle: <T = any>(data: { provider: string; callbackURL: string; type?: User_Type }) => {
+    const queryParam = data.type ? `?type=${data.type}` : '';
+    return api.post<T>(`/sign-in/social${queryParam}`, data, { baseUrl: 'auth', requireAuth: false });
+  },
 
   logout: <T = any>() =>
     api.post<T>('/sign-out', {}, { baseUrl: 'auth' }),
@@ -276,4 +281,58 @@ export const authApi = {
 
   isUsernameAvailable: <T = any>(data: { username: string }) =>
     api.post<T>('/is-username-available', data, { baseUrl: 'auth', requireAuth: false }),
+
+  // Voter-specific authentication endpoints
+  voterSignUp: <T = any>(userData: { name: string; email: string; password: string; username?: string }) =>
+    api.post<T>('/voter/auth/signup', userData, { requireAuth: false }),
+
+  voterSignIn: <T = any>(credentials: { email: string; password: string }) =>
+    api.post<T>('/voter/auth/signin', credentials, { requireAuth: false }),
+
+  voterSignInGoogle: <T = any>(data: { callbackUrl?: string }) =>
+    api.post<T>('/voter/auth/google', data, { requireAuth: false }),
+
+  checkVoterSession: <T = any>() =>
+    api.get<T>('/voter/auth/session', { requireAuth: true }),
+};
+
+/**
+ * Vote and payment-related API calls
+ */
+export const voteApi = {
+  // Cast vote using pre-purchased credits
+  castVoteWithCredits: <T = any>(data: {
+    voterId: string;
+    voteeId: string;
+    contestId: string;
+    count?: number;
+    comment?: string;
+  }) =>
+    api.post<T>('/contest/vote/credits', data),
+
+  // Get available vote credits for a voter
+  getAvailableVotes: <T = any>(profileId: string) =>
+    api.get<T>(`/votes/available/${profileId}`),
+
+  // Purchase vote credits
+  purchaseVoteCredits: <T = any>(data: {
+    profileId: string;
+    voteCount: number;
+    successUrl?: string;
+    cancelUrl?: string;
+  }) =>
+    api.post<T>('/payments/vote-credits/purchase', data),
+
+  // Check free vote availability
+  isFreeVoteAvailable: <T = any>(profileId: string) =>
+    api.post<T>('/votes/is-free-vote-available', { profileId }),
+
+  // Cast free vote
+  castFreeVote: <T = any>(data: {
+    voterId: string;
+    voteeId: string;
+    contestId: string;
+    comment?: string;
+  }) =>
+    api.post<T>('/contest/vote/free', data),
 };

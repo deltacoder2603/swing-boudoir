@@ -1,295 +1,192 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Heart, 
-  Trophy, 
-  Star, 
-  TrendingUp, 
-  Users, 
-  Calendar,
-  DollarSign,
-  Gift,
-  Clock,
-  Eye
-} from 'lucide-react';
-import { Link } from '@tanstack/react-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter, useSearch, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { VoterSidebar } from "@/components/voter/VoterSidebar";
+import Header from "@/components/layout/Header";
+import { VoterOverview } from "@/components/voter/VoterOverview";
+import { VoterCompetitions } from "@/components/voter/VoterCompetitions";
+import { VoterMilestones } from "@/components/voter/VoterMilestones";
+import { VoterAchievements } from "@/components/voter/VoterAchievements";
+import { VoterUnlocks } from "@/components/voter/VoterUnlocks";
+import { VoterSpinWheel } from "@/components/voter/VoterSpinWheel";
+import { VoterBuyVotes } from "@/components/voter/VoterBuyVotes";
+import { Settings } from "@/components/dashboard/Settings";
+import { Support } from "@/components/dashboard/Support";
+import { OfficialRules } from "@/components/dashboard/OfficialRules";
+import { useVoterStats } from "@/hooks/api/useVoter";
 
-interface VoterStats {
-  totalVotes: number;
-  votesThisMonth: number;
-  premiumVotes: number;
-  freeVotesRemaining: number;
-  nextFreeVote: string;
-  favoriteModels: number;
-  contestsParticipated: number;
-}
+type VoterSection = 
+  | "overview" 
+  | "competitions" 
+  | "milestones" 
+  | "achievements" 
+  | "unlocks" 
+  | "spin-wheel"
+  | "buy-votes"
+  | "settings" 
+  | "support" 
+  | "official-rules";
 
-export function VoterDashboard() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<VoterStats>({
-    totalVotes: 0,
-    votesThisMonth: 0,
-    premiumVotes: 0,
-    freeVotesRemaining: 0,
-    nextFreeVote: '',
-    favoriteModels: 0,
-    contestsParticipated: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
+function VoterDashboardLayout({
+  activeSection = "overview",
+  setActiveSection,
+  children,
+}: {
+  activeSection: VoterSection;
+  setActiveSection: (section: VoterSection) => void;
+  children: React.ReactNode;
+}) {
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
-  useEffect(() => {
-    // Fetch voter stats from API
-    const fetchStats = async () => {
-      try {
-        // TODO: Replace with actual API call
-        // const response = await getVoterStats(user?.profile?.id);
-        // setStats(response.data);
-        
-        // Mock data for now
-        setStats({
-          totalVotes: 45,
-          votesThisMonth: 12,
-          premiumVotes: 25,
-          freeVotesRemaining: 3,
-          nextFreeVote: '2025-01-29T13:00:00Z',
-          favoriteModels: 8,
-          contestsParticipated: 15
-        });
-      } catch (error) {
-        console.error('Error fetching voter stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user?.profileId) {
-      fetchStats();
-    }
-  }, [user?.profileId]);
-
-  const formatNextFreeVote = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+  const handleSidebarToggle = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen);
   };
 
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Voter Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Welcome back! Here's your voting activity overview.
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <Button asChild variant="outline">
-            <Link to="/voters/vote-history">
-              <Eye className="w-4 h-4 mr-2" />
-              View History
-            </Link>
-          </Button>
-          
-          <Button asChild>
-            <Link to="/voters/buy-votes">
-              <DollarSign className="w-4 h-4 mr-2" />
-              Buy Votes
-            </Link>
-          </Button>
-        </div>
+    <div className="min-h-screen bg-background">
+      <Header onSidebarToggle={handleSidebarToggle} />
+      <div className="flex pt-16">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:block">
+          <VoterSidebar 
+            activeSection={activeSection} 
+            setActiveSection={setActiveSection} 
+            onExpandedChange={setIsSidebarExpanded}
+          />
+        </aside>
+
+        {/* Mobile Sidebar */}
+        <VoterSidebar 
+          activeSection={activeSection} 
+          setActiveSection={setActiveSection} 
+          isMobile={true} 
+          isOpen={isMobileSidebarOpen} 
+          onToggle={() => setIsMobileSidebarOpen(false)} 
+        />
+
+        {/* Main content */}
+        <main className={`flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-300 ${isSidebarExpanded ? 'md:ml-64' : 'md:ml-16'}`}>
+          {children}
+        </main>
       </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Votes */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Votes</CardTitle>
-            <Heart className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalVotes}</div>
-            <p className="text-xs text-muted-foreground">
-              +{stats.votesThisMonth} this month
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Premium Votes */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Votes</CardTitle>
-            <Star className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.premiumVotes}</div>
-            <p className="text-xs text-muted-foreground">
-              Available to use
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Free Votes */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Free Votes</CardTitle>
-            <Gift className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.freeVotesRemaining}</div>
-            <p className="text-xs text-muted-foreground">
-              Next: {formatNextFreeVote(stats.nextFreeVote)}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Favorite Models */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Favorites</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.favoriteModels}</div>
-            <p className="text-xs text-muted-foreground">
-              Models you follow
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vote for Models */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Heart className="w-5 h-5 mr-2 text-red-500" />
-              Vote for Models
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Discover and vote for your favorite models in active contests.
-            </p>
-            <div className="flex items-center space-x-3">
-              <Button asChild className="flex-1">
-                <Link to="/voters/browse-contests">
-                  <Trophy className="w-4 h-4 mr-2" />
-                  Browse Contests
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/voters/favorites">
-                  <Star className="w-4 h-4 mr-2" />
-                  My Favorites
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Premium Features */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <DollarSign className="w-5 h-5 mr-2 text-green-500" />
-              Premium Features
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Unlock premium voting power and exclusive features.
-            </p>
-            <div className="flex items-center space-x-3">
-              <Button asChild className="flex-1">
-                <Link to="/voters/buy-votes">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Buy Votes
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/voters/subscriptions">
-                  <Gift className="w-4 h-4 mr-2" />
-                  Subscriptions
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Clock className="w-5 h-5 mr-2 text-blue-500" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Heart className="w-4 h-4 text-red-500" />
-                <span className="text-sm">Voted for Sarah in "Summer Glow" contest</span>
-              </div>
-              <Badge variant="secondary">2 hours ago</Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Star className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm">Added Emma to favorites</span>
-              </div>
-              <Badge variant="secondary">1 day ago</Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                <span className="text-sm">Purchased 50 premium votes</span>
-              </div>
-              <Badge variant="secondary">3 days ago</Badge>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-center">
-            <Button asChild variant="outline">
-              <Link to="/voters/activity">
-                View All Activity
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-export default VoterDashboard;
+export default function VoterDashboard() {
+  const router = useRouter();
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false, shouldThrow: false }) as { section?: string; payment?: string };
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState<VoterSection>(
+    (search?.section as VoterSection) || "overview"
+  );
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Fetch voter stats
+  const { data: stats } = useVoterStats(user?.id);
+
+  // Update section from URL param if present
+  useEffect(() => {
+    if (search?.section) {
+      const validSection = search.section as VoterSection;
+      if (["overview", "competitions", "milestones", "achievements", "unlocks", "spin-wheel", "buy-votes", "settings", "support", "official-rules"].includes(validSection)) {
+        setActiveSection(validSection);
+      }
+    }
+  }, [search?.section]);
+
+  // Handle payment cancellation notification
+  useEffect(() => {
+    if (search?.payment === "cancelled") {
+      toast({
+        title: "❌ Purchase Cancelled",
+        description: "Your payment was cancelled. No charges were made. You can try again anytime.",
+        duration: 5000,
+      });
+      
+      // Clean up URL by removing payment param
+      navigate({
+        to: "/voters",
+        search: { section: search?.section || "buy-votes" },
+        replace: true,
+      });
+    }
+  }, [search?.payment, search?.section, toast, navigate]);
+
+  // Auth check - redirect non-voters
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (!isAuthenticated) {
+      router.navigate({ to: "/auth/$id", params: { id: "sign-in" }, replace: true });
+      return;
+    }
+
+    if (user && user.type !== "VOTER") {
+      router.navigate({ to: "/dashboard/profile", replace: true });
+    }
+  }, [isAuthenticated, isLoading, user, router]);
+
+  const handleSetActiveSection = useCallback((newSection: VoterSection) => {
+    if (newSection === activeSection) return;
+    setIsNavigating(true);
+    setActiveSection(newSection);
+    setTimeout(() => setIsNavigating(false), 100);
+  }, [activeSection]);
+
+  const renderContent = useMemo(() => {
+    if (isNavigating) {
+    return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+    }
+
+    switch (activeSection) {
+      case "overview":
+        return <VoterOverview stats={stats} userId={user?.id} />;
+      case "competitions":
+        return <VoterCompetitions userId={user?.id} />;
+      case "milestones":
+        return <VoterMilestones userId={user?.id} />;
+      case "achievements":
+        return <VoterAchievements stats={stats} />;
+      case "unlocks":
+        return <VoterUnlocks stats={stats} />;
+      case "spin-wheel":
+        return <VoterSpinWheel userId={user?.id} spinData={stats?.spinWheelData} />;
+      case "buy-votes":
+        return <VoterBuyVotes userId={user?.id} />;
+      case "settings":
+        return <Settings />;
+      case "support":
+        return <Support />;
+      case "official-rules":
+        return <OfficialRules />;
+      default:
+        return <VoterOverview stats={stats} userId={user?.id} />;
+    }
+  }, [activeSection, isNavigating, stats, user?.id]);
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated || (user && user.type !== "VOTER")) {
+    return null;
+  }
+
+  return (
+    <VoterDashboardLayout activeSection={activeSection} setActiveSection={handleSetActiveSection}>
+      {renderContent}
+    </VoterDashboardLayout>
+  );
+}

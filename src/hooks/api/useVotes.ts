@@ -300,3 +300,61 @@ export const useVotesAnalytics = () => {
     },
   });
 };
+
+// Vote History interfaces
+export interface VoteHistoryRecord {
+  id: string;
+  modelName: string;
+  modelProfileImage: string | null;
+  contestName: string;
+  contestId: string;
+  contestSlug: string;
+  contestStatus: string;
+  contestEndDate: string | null;
+  voteType: "FREE" | "PAID";
+  voteCount: number;
+  timestamp: string;
+  voteeId: string;
+}
+
+export interface VoteHistoryStats {
+  totalVotes: number;
+  totalRecords: number;
+  freeVotes: number;
+  paidVotes: number;
+  contestsVotedIn: number;
+  uniqueModels: number;
+}
+
+export interface VoteHistoryResponse {
+  votes: VoteHistoryRecord[];
+  stats: VoteHistoryStats;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+// Get vote history for a profile
+export const useVoteHistory = (profileId: string | undefined, page: number = 1, limit: number = 50) => {
+  return useQuery({
+    queryKey: ["voteHistory", profileId, page, limit],
+    queryFn: async (): Promise<VoteHistoryResponse> => {
+      if (!profileId) throw new Error("Profile ID is required");
+      
+      const response = await api.get<VoteHistoryResponse>(
+        `/votes/history/${profileId}?page=${page}&limit=${limit}`
+      );
+      
+      if (!isApiSuccess(response)) {
+        throw new Error(getErrorMessage(response));
+      }
+      return response.data;
+    },
+    enabled: !!profileId,
+    staleTime: 1000 * 30, // 30 seconds
+  });
+};

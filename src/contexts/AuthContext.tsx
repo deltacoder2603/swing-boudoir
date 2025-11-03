@@ -50,7 +50,13 @@ interface AuthContextType {
   }) => Promise<{ token: string; user: User; username: string }>;
   handleLoginWithEmail: (data: SignInWithEmailRequest) => Promise<void>;
   handleLoginWithUsername: (data: SignInWithUsernameRequest) => Promise<void>;
-  handleLoginWithGoogle: (callbackURL?: string, type?: User_Type) => Promise<void>;
+  handleLoginWithGoogle: (callbackURL?: string, type?: User_Type, referralCode?: string) => Promise<void>;
+  
+  // Voter-specific authentication methods
+  handleVoterSignIn: (data: { email: string; password: string; callbackURL?: string }) => Promise<void>;
+  handleVoterSignUp: (data: { name: string; email: string; password: string; username?: string; callbackURL?: string }) => Promise<void>;
+  handleVoterGoogleSignIn: (callbackURL?: string) => Promise<void>;
+  
   handleLogout: () => Promise<void>;
   checkUserNeedsOnboarding: () => boolean;
 
@@ -170,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Register user
   const handleRegister = async (data: SignUpWithEmailRequest) => {
-    const { name, email, password, username, type } = data;
+    const { name, email, password, username, type, referralCode } = data;
     setIsLoading(true);
     setError(null);
     try {
@@ -189,6 +195,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!response.data?.user) {
         throw new Error("Invalid response from server");
       }
+
+      // Process referral if provided
+      if (referralCode) {
+        try {
+          await authApi.post(`/referrals/process`, {
+            referralCode,
+            userId: response.data.user.id,
+          });
+          toast({
+            title: "Referral Applied!",
+            description: `You were successfully referred by ${referralCode}. You'll receive bonus votes!`,
+          });
+        } catch (error) {
+          console.warn("Failed to process referral:", error);
+          // Don't fail registration if referral processing fails
+        }
+      }
+
       // For new registrations, always go to login
       router.navigate({ to: "/auth/$id", params: { id: "sign-in" }, search: { callback: data.callbackURL || authPages.login }, replace: true });
     } catch (error: unknown) {
@@ -368,7 +392,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   // Login with Google OAuth
-  const handleLoginWithGoogle = async (callbackURL?: string, type?: User_Type) => {
+  const handleLoginWithGoogle = async (callbackURL?: string, type?: User_Type, referralCode?: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -379,9 +403,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const searchParams = new URLSearchParams();
       if (finalRedirectUrl) searchParams.set("redirectTo", finalRedirectUrl);
       if (type) searchParams.set("userType", type);
+      if (referralCode) searchParams.set("referralCode", referralCode);
       const oauthCallbackUrl = `${baseCallback}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
-      console.log("oauthCallbackUrl", oauthCallbackUrl);
+      // Log OAuth callback URL only in development
+      if (import.meta.env.DEV) {
+        console.log("oauthCallbackUrl", oauthCallbackUrl);
+      }
       const response = await authApi.loginWithGoogle<SocialSignInResponse>({
         provider: "google",
         callbackURL: oauthCallbackUrl,
@@ -415,6 +443,161 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
       throw error; // Re-throw to be handled by component
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Voter-specific sign in
+  const handleVoterSignIn = async (data: { email: string; password: string; callbackURL?: string }) => {
+    const { email, password, callbackURL } = data;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authApi.voterSignIn<{ user: User; session: { token: string; expiresAt: number } }>({
+        email,
+        password,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Voter sign in failed");
+      }
+
+      if (!response.data?.user || !response.data?.session?.token) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Store token
+      localStorage.setItem(AUTH_TOKEN_KEY, response.data.session.token);
+
+      // Redirect to callback URL or voter dashboard
+      const redirectTo = callbackURL || "/voters";
+
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        router.navigate({ to: redirectTo, replace: true });
+      }, 100);
+
+      // Invalidate and refetch session data
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "Voter sign in failed");
+        toast({
+          title: "Sign In Failed",
+          description: error.message || "Voter sign in failed",
+          variant: "destructive",
+        });
+      } else {
+        setError("Voter sign in failed");
+        toast({
+          title: "Sign In Failed",
+          description: "Voter sign in failed",
+          variant: "destructive",
+        });
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Voter-specific sign up
+  const handleVoterSignUp = async (data: { name: string; email: string; password: string; username?: string; callbackURL?: string }) => {
+    const { name, email, password, username, callbackURL } = data;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authApi.voterSignUp<{ user: User; session: { token: string; expiresAt: number } }>({
+        name,
+        email,
+        password,
+        username,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Voter sign up failed");
+      }
+
+      if (!response.data?.user || !response.data?.session?.token) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Store token
+      localStorage.setItem(AUTH_TOKEN_KEY, response.data.session.token);
+
+      // Redirect to callback URL or voter dashboard
+      const redirectTo = callbackURL || "/voters";
+
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        router.navigate({ to: redirectTo, replace: true });
+      }, 100);
+
+      // Invalidate and refetch session data
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "Voter sign up failed");
+        toast({
+          title: "Sign Up Failed",
+          description: error.message || "Voter sign up failed",
+          variant: "destructive",
+        });
+      } else {
+        setError("Voter sign up failed");
+        toast({
+          title: "Sign Up Failed",
+          description: "Voter sign up failed",
+          variant: "destructive",
+        });
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Voter-specific Google sign in
+  const handleVoterGoogleSignIn = async (callbackURL?: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const finalCallbackUrl = callbackURL || "/voters";
+      const response = await authApi.voterSignInGoogle<{ url: string }>({
+        callbackUrl: finalCallbackUrl,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Voter Google sign in failed");
+      }
+
+      if (!response.data?.url) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Redirect to Google OAuth
+      window.location.href = response.data.url;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "Voter Google sign in failed");
+        toast({
+          title: "Google Sign In Failed",
+          description: error.message || "Voter Google sign in failed",
+          variant: "destructive",
+        });
+      } else {
+        setError("Voter Google sign in failed");
+        toast({
+          title: "Google Sign In Failed",
+          description: "Voter Google sign in failed",
+          variant: "destructive",
+        });
+      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -458,6 +641,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Only check onboarding if user is authenticated
     if (!isAuthenticated || !user || !session) return false;
 
+    // Voters don't need onboarding - they can directly access the dashboard
+    if (user.type === "VOTER") return false;
+
+    // Only models need onboarding (profile setup)
     // Check if user has a profile
     if (!user.profileId || !session.profileId) return true;
     return false;
@@ -764,6 +951,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleLoginWithEmail,
     handleLoginWithUsername,
     handleLoginWithGoogle,
+    handleVoterSignIn,
+    handleVoterSignUp,
+    handleVoterGoogleSignIn,
     handleLogout,
     checkUserNeedsOnboarding,
     getSession,

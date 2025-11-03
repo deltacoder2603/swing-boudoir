@@ -17,173 +17,36 @@ import {
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Contest {
-  id: string;
-  name: string;
-  description: string;
-  endDate: string;
-  participants: number;
-  prize: string;
-  category: string;
-  status: 'active' | 'ending_soon' | 'upcoming';
-  coverImage: string;
-}
-
-interface ContestModel {
-  id: string;
-  name: string;
-  profileImage: string;
-  bio: string;
-  votes: number;
-  isFavorite: boolean;
-  contestPhotos: string[];
-}
+import { useContests } from '@/hooks/api/useContests';
+import { useContestParticipants } from '@/hooks/api/useContestParticipation';
+import type { Contest } from '@/types/contest.types';
 
 export function BrowseContests() {
   const { user } = useAuth();
-  const [contests, setContests] = useState<Contest[]>([]);
-  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
-  const [contestModels, setContestModels] = useState<ContestModel[]>([]);
+  const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'contests' | 'models'>('contests');
 
   const categories = ['all', 'boudoir', 'fashion', 'portrait', 'artistic', 'commercial'];
 
-  useEffect(() => {
-    // Fetch contests from API
-    const fetchContests = async () => {
-      try {
-        // TODO: Replace with actual API call
-        // const response = await getActiveContests();
-        // setContests(response.data);
-        
-        // Mock data for now
-        setContests([
-          {
-            id: '1',
-            name: 'Summer Glow 2025',
-            description: 'Capture the essence of summer beauty with natural lighting and warm tones.',
-            endDate: '2025-02-15T23:59:59Z',
-            participants: 45,
-            prize: '$5,000 + Magazine Feature',
-            category: 'boudoir',
-            status: 'active',
-            coverImage: '/api/placeholder/400/300'
-          },
-          {
-            id: '2',
-            name: 'Urban Elegance',
-            description: 'Modern city vibes meet classic elegance in this urban photography contest.',
-            endDate: '2025-01-30T23:59:59Z',
-            participants: 32,
-            prize: '$3,000 + Portfolio Review',
-            category: 'fashion',
-            status: 'ending_soon',
-            coverImage: '/api/placeholder/400/300'
-          },
-          {
-            id: '3',
-            name: 'Artistic Expression',
-            description: 'Push creative boundaries with artistic and conceptual photography.',
-            endDate: '2025-03-01T23:59:59Z',
-            participants: 28,
-            prize: '$4,000 + Gallery Exhibition',
-            category: 'artistic',
-            status: 'active',
-            coverImage: '/api/placeholder/400/300'
-          }
-        ]);
-      } catch (error) {
-        console.error('Error fetching contests:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch contests from API
+  const { data: contestsData, isLoading } = useContests(1, 100, 'active');
+  const contests = contestsData?.data || [];
 
-    fetchContests();
-  }, []);
+  // Fetch participants for selected contest
+  const { data: participantsData } = useContestParticipants(selectedContestId || '');
+  const contestModels = participantsData?.data || [];
 
-  useEffect(() => {
-    if (selectedContest) {
-      // Fetch models for selected contest
-      const fetchContestModels = async () => {
-        try {
-          // TODO: Replace with actual API call
-          // const response = await getContestModels(selectedContest.id);
-          // setContestModels(response.data);
-          
-          // Mock data for now
-          setContestModels([
-            {
-              id: '1',
-              name: 'Sarah Johnson',
-              profileImage: '/api/placeholder/100/100',
-              bio: 'Professional model with 5+ years experience in fashion and boudoir photography.',
-              votes: 156,
-              isFavorite: false,
-              contestPhotos: ['/api/placeholder/300/400', '/api/placeholder/300/400']
-            },
-            {
-              id: '2',
-              name: 'Emma Davis',
-              profileImage: '/api/placeholder/100/100',
-              bio: 'Rising star known for her natural beauty and authentic expressions.',
-              votes: 89,
-              isFavorite: true,
-              contestPhotos: ['/api/placeholder/300/400', '/api/placeholder/300/400']
-            },
-            {
-              id: '3',
-              name: 'Mia Rodriguez',
-              profileImage: '/api/placeholder/100/100',
-              bio: 'Versatile model specializing in artistic and commercial photography.',
-              votes: 234,
-              isFavorite: false,
-              contestPhotos: ['/api/placeholder/300/400', '/api/placeholder/300/400']
-            }
-          ]);
-        } catch (error) {
-          console.error('Error fetching contest models:', error);
-        }
-      };
-
-      fetchContestModels();
-    }
-  }, [selectedContest]);
+  const selectedContest = contests.find(c => c.id === selectedContestId) || null;
 
   const handleVote = async (modelId: string, contestId: string) => {
     try {
-      // TODO: Implement actual voting logic
+      // TODO: Implement actual voting logic via API
       console.log(`Voting for model ${modelId} in contest ${contestId}`);
-      
-      // Update local state
-      setContestModels(prev => 
-        prev.map(model => 
-          model.id === modelId 
-            ? { ...model, votes: model.votes + 1 }
-            : model
-        )
-      );
+      // Will be implemented when vote API is integrated
     } catch (error) {
       console.error('Error voting:', error);
-    }
-  };
-
-  const toggleFavorite = async (modelId: string) => {
-    try {
-      // TODO: Implement actual favorite logic
-      setContestModels(prev => 
-        prev.map(model => 
-          model.id === modelId 
-            ? { ...model, isFavorite: !model.isFavorite }
-            : model
-        )
-      );
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
     }
   };
 
@@ -208,9 +71,10 @@ export function BrowseContests() {
 
   const filteredContests = contests.filter(contest => {
     const matchesSearch = contest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contest.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || contest.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+                         (contest.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    // Note: API doesn't provide category field, so filtering by category won't work
+    // until we add category to Contest model
+    return matchesSearch;
   });
 
   if (isLoading) {
@@ -244,7 +108,7 @@ export function BrowseContests() {
             variant="outline" 
             onClick={() => {
               setViewMode('contests');
-              setSelectedContest(null);
+              setSelectedContestId(null);
             }}
           >
             <Eye className="w-4 h-4 mr-2" />
@@ -290,13 +154,13 @@ export function BrowseContests() {
               key={contest.id} 
               className="cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => {
-                setSelectedContest(contest);
+                setSelectedContestId(contest.id);
                 setViewMode('models');
               }}
             >
               <div className="relative">
                 <img
-                  src={contest.coverImage}
+                  src={contest.images?.[0]?.url || '/placeholder.svg'}
                   alt={contest.name}
                   className="w-full h-48 object-cover rounded-t-lg"
                 />
@@ -308,19 +172,15 @@ export function BrowseContests() {
               <CardHeader>
                 <CardTitle className="text-lg">{contest.name}</CardTitle>
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  {contest.description}
+                  {contest.description || 'Join this exciting competition!'}
                 </p>
               </CardHeader>
               
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center space-x-1">
-                    <Users className="w-4 h-4 text-gray-500" />
-                    <span>{contest.participants} participants</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
                     <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span className="font-medium">{contest.prize}</span>
+                    <span className="font-medium">${contest.prizePool.toLocaleString()}</span>
                   </div>
                 </div>
                 
@@ -330,8 +190,10 @@ export function BrowseContests() {
                     <span>{getDaysLeft(contest.endDate)} days left</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <MapPin className="w-4 h-4 text-blue-500" />
-                    <span className="capitalize">{contest.category}</span>
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <span className="text-xs">
+                      {new Date(contest.startDate!).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
                 
@@ -353,7 +215,7 @@ export function BrowseContests() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">{selectedContest.name}</h2>
-                    <p className="text-muted-foreground mt-1">{selectedContest.description}</p>
+                    <p className="text-muted-foreground mt-1">{selectedContest.description || 'Join this exciting competition!'}</p>
                     <div className="flex items-center space-x-4 mt-3">
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4 text-red-500" />
@@ -361,7 +223,7 @@ export function BrowseContests() {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Trophy className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm font-medium">{selectedContest.prize}</span>
+                        <span className="text-sm font-medium">${selectedContest.prizePool.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -376,64 +238,50 @@ export function BrowseContests() {
 
           {/* Models Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {contestModels.map((model) => (
-              <Card key={model.id} className="overflow-hidden">
-                <div className="relative">
-                  <img
-                    src={model.profileImage}
-                    alt={model.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(model.id);
-                    }}
-                  >
-                    <Star className={`w-4 h-4 ${model.isFavorite ? 'text-yellow-500 fill-current' : 'text-gray-500'}`} />
-                  </Button>
-                </div>
-                
-                <CardHeader>
-                  <CardTitle className="text-lg">{model.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {model.bio}
-                  </p>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4 text-red-500" />
-                      <span className="font-medium">{model.votes} votes</span>
+            {contestModels.map((participant) => {
+              const modelName = participant.profile?.user?.name || 'Model';
+              const avatarUrl = participant.profile?.user?.image || '/placeholder.svg';
+              const bio = participant.profile?.bio || 'Participant in this competition';
+              
+              return (
+                <Card key={participant.id} className="overflow-hidden">
+                  <div className="relative">
+                    <img
+                      src={avatarUrl}
+                      alt={modelName}
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                  
+                  <CardHeader>
+                    <CardTitle className="text-lg">{modelName}</CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {bio}
+                    </p>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1">
+                        <Heart className="w-4 h-4 text-red-500" />
+                        <span className="font-medium">{participant.totalVotes || 0} votes</span>
+                      </div>
+                      <Badge variant="secondary">
+                        Rank #{participant.rank || '–'}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary">{selectedContest?.category}</Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    {model.contestPhotos.slice(0, 2).map((photo, index) => (
-                      <img
-                        key={index}
-                        src={photo}
-                        alt={`Contest photo ${index + 1}`}
-                        className="w-full h-20 object-cover rounded"
-                      />
-                    ))}
-                  </div>
-                  
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleVote(model.id, selectedContest?.id || '')}
-                  >
-                    <Heart className="w-4 h-4 mr-2" />
-                    Vote for {model.name}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleVote(participant.profileId, selectedContest?.id || '')}
+                    >
+                      <Heart className="w-4 h-4 mr-2" />
+                      Vote for {modelName}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

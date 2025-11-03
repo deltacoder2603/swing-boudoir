@@ -85,7 +85,7 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
 
           {/* Profile/Auth - Top Right */}
           <div className="flex items-center">
-            {isAuthenticated && user && user.type === "MODEL" ? (
+            {isAuthenticated && user ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
@@ -99,15 +99,26 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
                   <div className="p-4 border-b">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
+                      {user.type === "VOTER" && (
+                        <Badge variant="secondary" className="w-fit mt-1">Voter</Badge>
+                      )}
                     </div>
                   </div>
                   <div className="p-2">
-                    <Button variant="ghost" className="w-full justify-start h-9 px-2" onClick={() => navigate({ to: "/dashboard" })}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start h-9 px-2" 
+                      onClick={() => navigate({ to: user.type === "VOTER" ? "/voters" : "/dashboard" })}
+                    >
                       <User className="mr-2 h-4 w-4" />
                       <span>Dashboard</span>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start h-9 px-2" onClick={() => navigate({ to: "/dashboard/$section", params: { section: "settings" } })}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start h-9 px-2" 
+                      onClick={() => user.type === "VOTER" ? navigate({ to: "/voters" }) : navigate({ to: "/dashboard/$section", params: { section: "settings" } })}
+                    >
                       <SettingsIcon className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Button>
@@ -119,10 +130,6 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
                   </div>
                 </PopoverContent>
               </Popover>
-            ) : isAuthenticated && user && user.type === "VOTER" ? (
-              <Button variant="ghost" size="sm" className="text-sm" onClick={handleLogoutClick}>
-                Log out
-              </Button>
             ) : (
               <Link to="/auth/$id" params={{ id: "sign-in" }}>
                 <Button variant="ghost" size="sm" className="text-sm">
@@ -167,19 +174,21 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
           {/* Right side - Profile menu and actions */}
           <div className="flex items-center space-x-4">
             {/* Profile Menu - Show when authenticated */}
-            {isAuthenticated && user && user.type === "MODEL" && (
+            {isAuthenticated && user && (
               <>
-                {/* Notifications Icon - Desktop Only */}
-                <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0 hidden lg:flex">
-                  <Link to="/dashboard/$section" params={{ section: "notifications" }} className="relative w-full h-full flex items-center justify-center">
-                    <Bell className="w-4 h-4" />
-                    {unreadCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
+                {/* Notifications Icon - Desktop Only - Models Only */}
+                {user.type === "MODEL" && (
+                  <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full p-0 hidden lg:flex">
+                    <Link to="/dashboard/$section" params={{ section: "notifications" }} className="relative w-full h-full flex items-center justify-center">
+                      <Bell className="w-4 h-4" />
+                      {unreadCount > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </Button>
+                )}
 
                 <Popover>
                   <PopoverTrigger asChild>
@@ -194,15 +203,26 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
                     <div className="p-4 border-b">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">{user.name}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                        <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
+                        {user.type === "VOTER" && (
+                          <Badge variant="secondary" className="w-fit mt-1">Voter</Badge>
+                        )}
                       </div>
                     </div>
                     <div className="p-2">
-                      <Button variant="ghost" className="w-full justify-start h-9 px-2" onClick={() => navigate({ to: "/dashboard" })}>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start h-9 px-2" 
+                        onClick={() => navigate({ to: user.type === "VOTER" ? "/voters" : "/dashboard" })}
+                      >
                         <User className="mr-2 h-4 w-4" />
                         <span>Dashboard</span>
                       </Button>
-                      <Button variant="ghost" className="w-full justify-start h-9 px-2" onClick={() => navigate({ to: "/dashboard/$section", params: { section: "settings" } })}>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start h-9 px-2" 
+                        onClick={() => user.type === "VOTER" ? navigate({ to: "/voters" }) : navigate({ to: "/dashboard/$section", params: { section: "settings" } })}
+                      >
                         <SettingsIcon className="mr-2 h-4 w-4" />
                         <span>Settings</span>
                       </Button>
@@ -215,13 +235,6 @@ const Header = ({ onSidebarToggle }: HeaderProps) => {
                   </PopoverContent>
                 </Popover>
               </>
-            )}
-
-            {/* Voter Logout - Show when authenticated as VOTER */}
-            {isAuthenticated && user && user.type === "VOTER" && (
-              <Button variant="ghost" size="sm" onClick={handleLogoutClick}>
-                Log out
-              </Button>
             )}
 
             {/* Auth Buttons - Show when not authenticated */}

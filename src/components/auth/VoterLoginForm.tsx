@@ -16,7 +16,7 @@ interface VoterLoginFormProps {
 }
 
 export function VoterLoginForm({ onSuccess, callbackURL: propCallbackURL }: VoterLoginFormProps) {
-  const { handleLoginWithEmail, handleLoginWithUsername, isLoading } = useAuth();
+  const { handleVoterSignIn, isLoading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -30,23 +30,21 @@ export function VoterLoginForm({ onSuccess, callbackURL: propCallbackURL }: Vote
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // Use Zod-based email validation
-      const isEmailInput = isEmail(data.emailOrUsername);
-
-      if (isEmailInput) {
-        await handleLoginWithEmail({
-          email: data.emailOrUsername,
-          password: data.password,
-          callbackURL: propCallbackURL || "/voters", // Use provided callback or default to voter dashboard
+      // Voter sign-in requires email (not username)
+      if (!isEmail(data.emailOrUsername)) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address to sign in as a voter.",
+          variant: "destructive",
         });
-      } else {
-        await handleLoginWithUsername({
-          username: data.emailOrUsername,
-          password: data.password,
-          rememberMe: true,
-          callbackURL: propCallbackURL || "/voters", // Use provided callback or default to voter dashboard
-        });
+        return;
       }
+
+      await handleVoterSignIn({
+        email: data.emailOrUsername,
+        password: data.password,
+        callbackURL: propCallbackURL || "/voters", // Use provided callback or default to voter dashboard
+      });
 
       toast({
         title: "Login Successful!",

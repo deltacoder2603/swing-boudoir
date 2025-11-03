@@ -17,6 +17,9 @@ import { ONBOARDING_REDIRECT } from "@/routes";
 import { DashboardSection } from "@/routes/dashboard/$section";
 import Leaderboard from "@/pages/Leaderboard";
 import { CompetitionsPage } from "@/components/competitions/CompetitionsPage";
+import { Gamification } from "@/components/dashboard/Gamification";
+import ReferralsTab from "@/components/dashboard/ReferralsTab";
+import VotersLeaderboardTab from "@/components/dashboard/VotersLeaderboardTab";
 
 function DashboardLayout({
   activeSection = "profile",
@@ -121,10 +124,16 @@ export default function Dashboard() {
         return <CompetitionsPage />;
       case "votes":
         return <Votes />;
+      case "referrals":
+        return <ReferralsTab />;
+      case "voters-leaderboard":
+        return <VotersLeaderboardTab />;
       case "prize-history":
         return <PrizeHistory />;
       case "leaderboard":
         return <Leaderboard />;
+      case "gamification":
+        return <Gamification />;
       case "settings":
         return <Settings />;
       case "support":

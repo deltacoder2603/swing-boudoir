@@ -1,6 +1,7 @@
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useJoinedCompetitions } from "@/contexts/JoinedCompetitionsContext";
 import { useContestParticipation } from "@/hooks/api/useContestParticipation";
 import { useCheckContestParticipation, useJoinContest, useLeaveContest } from "@/hooks/api/useContests";
 import { useToast } from "@/hooks/use-toast";
@@ -32,15 +33,22 @@ export const ContestJoinButton: React.FC<ContestJoinButtonProps> = ({
   customButtonText,
 }) => {
   const { isAuthenticated, user, checkUserNeedsOnboarding } = useAuth();
+  const { joinedCompetitions, joinCompetition, leaveCompetition, isJoined } = useJoinedCompetitions();
   const { toast } = useToast();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
 
   const profileId = user?.profileId;
 
-  // Check participation status
-  const { data: participation, isLoading: isChecking } = useCheckContestParticipation(contest?.id, profileId || "");
-  const showLeave = participation?.hasJoined === true;
+  // Check participation status - for dummy competitions, check local state
+  const isDummyContest = contest.id.startsWith('dummy-');
+  const { data: participation, isLoading: isChecking } = useCheckContestParticipation(
+    contest?.id, 
+    profileId || "",
+    { enabled: !isDummyContest } // Only check API for real competitions
+  );
+  
+  const showLeave = isDummyContest ? isJoined(contest.id) : (participation?.hasJoined === true);
   const isBooked = contest.status === "BOOKED";
 
   // Mutations
@@ -92,7 +100,31 @@ export const ContestJoinButton: React.FC<ContestJoinButtonProps> = ({
       return;
     }
     
+    // Check if this is a dummy competition
+    const isDummyContest = contest.id.startsWith('dummy-');
+    
     try {
+      if (isDummyContest) {
+        // For dummy competitions, add to local state
+        joinCompetition({
+          id: contest.id,
+          name: contest.name,
+          slug: contest.slug,
+          prizePool: contest.prizePool,
+          endDate: contest.endDate,
+          coverImage: file ? URL.createObjectURL(file) : undefined,
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        toast({ 
+          title: "Success!", 
+          description: `You have joined ${contest.name}! This is a demo competition.` 
+        });
+        setIsImageDialogOpen(false);
+        onSuccess?.();
+        return;
+      }
+      
       // First join the contest to get participation ID
       const joinResult = await joinContestMutation.mutateAsync({ 
         profileId, 
@@ -135,7 +167,24 @@ export const ContestJoinButton: React.FC<ContestJoinButtonProps> = ({
       toast({ title: "Authentication Required", description: "Please log in to leave contests", variant: "destructive" });
       return;
     }
+    
+    // Check if this is a dummy competition
+    const isDummyContest = contest.id.startsWith('dummy-');
+    
     try {
+      if (isDummyContest) {
+        // For dummy competitions, remove from local state
+        leaveCompetition(contest.id);
+        
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+        toast({ 
+          title: "Success!", 
+          description: `You have left ${contest.name}. This was a demo competition.` 
+        });
+        onSuccess?.();
+        return;
+      }
+      
       await leaveContestMutation.mutateAsync({ contestId: contest.id, profileId });
       toast({ title: "Success!", description: `You have left ${contest.name}` });
       

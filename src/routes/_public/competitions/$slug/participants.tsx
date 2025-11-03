@@ -14,10 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageHelper } from "@/lib/image-helper";
-import { Link } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Eye, Loader2, Search, Trophy, User, Users, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import VoteButton from "@/components/competitions/VoteButton";
 
 const limit = 50;
 
@@ -770,6 +771,24 @@ export default function ContestParticipants() {
                               </td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center space-x-2">
+                                  <VoteButton 
+                                    participant={{
+                                      profileId: participant.profileId,
+                                      username: participant.profile?.user?.username || "",
+                                      displayUsername: participant.profile?.user?.name || "",
+                                      avatarUrl: participant.profile?.user?.image || null,
+                                      bio: participant.profile?.bio || null,
+                                      totalVotes: 0,
+                                      freeVotes: 0,
+                                      paidVotes: 0,
+                                      isParticipating: participant.isParticipating || false,
+                                      coverImage: participant.coverImage?.url || null,
+                                      isApproved: participant.isApproved || false,
+                                      rank: 0
+                                    }}
+                                    contestId={contest?.id || ""}
+                                    compact={true}
+                                  />
                                   <Link to="/profile/$username" params={{ username: participant.profile?.user?.username || "" }}>
                                     <Button
                                       variant="outline"
@@ -839,16 +858,36 @@ export default function ContestParticipants() {
 
                             <div className="flex items-center justify-between w-full pt-1 border-t border-border/30">
                               <div className="text-xs text-muted-foreground">Joined {formatDistanceToNow(new Date(participant.createdAt), { addSuffix: true })}</div>
-                              <Link to="/profile/$username" params={{ username: participant.profile?.user?.username || "" }}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="group/btn hover:bg-primary hover:text-primary-foreground transition-all duration-200 border-primary/20 hover:border-primary text-xs px-3 py-1"
-                                >
-                                  <Eye className="w-3 h-3 mr-1 group-hover/btn:scale-110 transition-transform duration-200" />
-                                  View Profile
-                                </Button>
-                              </Link>
+                              <div className="flex items-center space-x-2">
+                                <VoteButton 
+                                  participant={{
+                                    profileId: participant.profileId,
+                                    username: participant.profile?.user?.username || "",
+                                    displayUsername: participant.profile?.user?.name || "",
+                                    avatarUrl: participant.profile?.user?.image || null,
+                                    bio: participant.profile?.bio || null,
+                                    totalVotes: 0,
+                                    freeVotes: 0,
+                                    paidVotes: 0,
+                                    isParticipating: participant.isParticipating || false,
+                                    coverImage: participant.coverImage?.url || null,
+                                    isApproved: participant.isApproved || false,
+                                    rank: 0
+                                  }}
+                                  contestId={contest?.id || ""}
+                                  compact={true}
+                                />
+                                <Link to="/profile/$username" params={{ username: participant.profile?.user?.username || "" }}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="group/btn hover:bg-primary hover:text-primary-foreground transition-all duration-200 border-primary/20 hover:border-primary text-xs px-3 py-1"
+                                  >
+                                    <Eye className="w-3 h-3 mr-1 group-hover/btn:scale-110 transition-transform duration-200" />
+                                    View Profile
+                                  </Button>
+                                </Link>
+                              </div>
                             </div>
                           </div>
                         </Card>

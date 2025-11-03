@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +10,18 @@ import { registerStep1Schema, registerStep2Schema, type RegisterStep1Data, type 
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { authApi, isApiSuccess } from "@/lib/api";
+import LoginWithGoogle from "./LoginWithGoogle";
 
 interface VoterRegisterFormProps {
   onSuccess?: () => void;
   callbackURL?: string;
+  referralCode?: string;
 }
 
-export function VoterRegisterForm({ onSuccess, callbackURL: propCallbackURL }: VoterRegisterFormProps) {
-  const { handleRegisterAsVoter, isLoading } = useAuth();
+export function VoterRegisterForm({ onSuccess, callbackURL: propCallbackURL, referralCode }: VoterRegisterFormProps) {
+  const { handleVoterSignUp, isLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [step1Data, setStep1Data] = useState<RegisterStep1Data | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -92,12 +96,11 @@ export function VoterRegisterForm({ onSuccess, callbackURL: propCallbackURL }: V
     if (!step1Data) return;
 
     try {
-      await handleRegisterAsVoter({
+      await handleVoterSignUp({
         name: step1Data.name,
         username: data.username,
         email: step1Data.email,
         password: step1Data.password,
-        rememberMe: true,
         callbackURL: propCallbackURL || "/voters", // Use provided callback or default to voter dashboard
       });
 
@@ -219,22 +222,38 @@ export function VoterRegisterForm({ onSuccess, callbackURL: propCallbackURL }: V
             )}
           </div>
 
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
             <span>Continue</span>
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+          </div>
+        </div>
+
+        {/* Google Sign In */}
+        <LoginWithGoogle 
+          callbackURL={propCallbackURL || "/voters"} 
+          loginAs="VOTER"
+          onSuccess={onSuccess}
+          referralCode={referralCode}
+        />
 
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
             <button 
               type="button" 
-              className="text-primary hover:underline font-medium"
+              className="text-purple-600 hover:underline font-medium"
               onClick={() => {
-                // This will be handled by the parent modal to switch tabs
-                const event = new CustomEvent('switchToLogin');
-                window.dispatchEvent(event);
+                router.navigate({ to: "/auth/$id", params: { id: "sign-in" }, search: { type: "VOTER" } });
               }}
             >
               Sign in to vote
@@ -313,9 +332,7 @@ export function VoterRegisterForm({ onSuccess, callbackURL: propCallbackURL }: V
             type="button" 
             className="text-primary hover:underline font-medium"
             onClick={() => {
-              // This will be handled by the parent modal to switch tabs
-              const event = new CustomEvent('switchToLogin');
-              window.dispatchEvent(event);
+              router.navigate({ to: "/auth/$id", params: { id: "sign-in" }, search: { type: "VOTER" } });
             }}
           >
             Sign in to vote

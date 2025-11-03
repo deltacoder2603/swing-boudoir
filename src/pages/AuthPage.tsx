@@ -14,20 +14,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Features } from "@/constants/auth.constants";
 import { useAuth } from "@/contexts/AuthContext";
-import { Shield, Trophy } from "lucide-react";
+import { Shield, Trophy, Heart } from "lucide-react";
 import React, { useEffect } from "react";
-import { useParams, useRouter } from "@tanstack/react-router";
-import { LoginForm, RegisterForm } from "@/components/auth";
+import { useRouter, useLocation, useSearch } from "@tanstack/react-router";
+import { LoginForm, RegisterForm, VoterRegisterForm } from "@/components/auth";
 import img1 from "@/assets/testimonials/img-1.jpg";
 import img2 from "@/assets/testimonials/img-2.jpg";
 import img3 from "@/assets/testimonials/img-3.jpg";
 import img4 from "@/assets/testimonials/img-4.jpg";
 import img5 from "@/assets/testimonials/img-5.jpg";
 
-const Auth: React.FC = () => {
+interface AuthProps {
+  defaultMode?: "sign-in" | "sign-up";
+  referralCode?: string;
+}
+
+const Auth: React.FC<AuthProps> = ({ defaultMode, referralCode }) => {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const { id } = useParams({ from: "/auth/$id" });
+  const location = useLocation();
+  const search = useSearch({ strict: false }) as { type?: "MODEL" | "VOTER"; referralCode?: string };
+  
+  // Determine if we're in sign-in mode based on route or props
+  const isSignInRoute = location.pathname.includes('/auth/sign-in');
+  const isRegisterRoute = location.pathname === '/register';
+  const userType = search.type || "MODEL";
+  const isVoter = userType === "VOTER";
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -36,10 +48,12 @@ const Auth: React.FC = () => {
     }
   }, [isAuthenticated, router]);
 
-  const isSignIn = id === "sign-in";
-  const cardTitle = isSignIn ? "Welcome Back" : "Get Started";
+  const isSignIn = isSignInRoute || defaultMode === "sign-in";
+  const cardTitle = isSignIn ? "Welcome Back" : (isVoter ? "Join as Voter" : "Get Started");
   const cardDescription = isSignIn
     ? "Sign in to your account to continue your journey"
+    : isVoter
+    ? "Create a voter account to support models and unlock exclusive rewards"
     : "Create an account to access the Swing Boudoir Magazine and compete for life-changing opportunities.";
 
   return (
@@ -49,9 +63,17 @@ const Auth: React.FC = () => {
         <div className="hidden lg:block text-white space-y-8">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold leading-tight">
-              Welcome to <span className="bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">Swing Boudoir</span>
+              {isVoter ? (
+                <>Support Your <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Favorite Models</span></>
+              ) : (
+                <>Welcome to <span className="bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">Swing Boudoir</span></>
+              )}
             </h1>
-            <p className="text-xl text-white/90 leading-relaxed">Join the most prestigious modeling platform and compete for life-changing opportunities.</p>
+            <p className="text-xl text-white/90 leading-relaxed">
+              {isVoter 
+                ? "Join as a voter to unlock exclusive content, win prizes, and earn rewards while supporting talented models."
+                : "Join the most prestigious modeling platform and compete for life-changing opportunities."}
+            </p>
           </div>
           <div className="space-y-6">
             {Features.map((feature, index) => (
@@ -81,7 +103,9 @@ const Auth: React.FC = () => {
                   />
                 ))}
               </div>
-              <span className="text-sm">Join 25,000+ models worldwide</span>
+              <span className="text-sm">
+                {isVoter ? "Join 50,000+ voters worldwide" : "Join 25,000+ models worldwide"}
+              </span>
             </div>
           </div>
         </div>
@@ -89,8 +113,12 @@ const Auth: React.FC = () => {
         <div className="flex justify-center">
           <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
             <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
-                <Trophy className="w-8 h-8 text-white" />
+              <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+                isVoter 
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500" 
+                  : "bg-gradient-to-r from-primary to-primary/80"
+              }`}>
+                {isVoter ? <Heart className="w-8 h-8 text-white" /> : <Trophy className="w-8 h-8 text-white" />}
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold text-gray-900">{cardTitle}</CardTitle>
@@ -98,8 +126,17 @@ const Auth: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Render the appropriate form based on route parameter */}
-              {isSignIn ? <LoginForm /> : <RegisterForm />}
+              {/* Render the appropriate form based on route parameter and user type */}
+              {isSignIn ? (
+                <LoginForm />
+              ) : isVoter ? (
+                <VoterRegisterForm 
+                  callbackURL="/voters"
+                  referralCode={referralCode || search.referralCode}
+                />
+              ) : (
+                <RegisterForm referralCode={referralCode || search.referralCode} />
+              )}
 
               {/* Security Notice */}
               <div className="text-center space-y-3">

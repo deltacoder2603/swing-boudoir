@@ -21,6 +21,13 @@ export const Route = createFileRoute("/onboarding/")({
     if (!response.data?.user) {
       return redirect({ to: "/auth/$id", params: { id: "sign-in" } });
     }
+    
+    // Voters don't need onboarding - redirect them to dashboard
+    if (response.data?.user.type === "VOTER") {
+      return redirect({ to: "/dashboard" });
+    }
+    
+    // If model already has a profile, redirect to dashboard
     if (response.data?.user.profileId) {
       return redirect({ to: "/dashboard" });
     }

@@ -261,6 +261,11 @@ export function getImageUrl(
         return '';
     }
 
+    // Validate URL before processing
+    if (!validateImageUrl(originalUrl)) {
+        return '';
+    }
+
     const sizeConfig = IMAGE_SIZE_CONFIGS[size];
     const options: ImageTransformOptions = {
         ...DEFAULT_OPTIONS,
@@ -268,7 +273,13 @@ export function getImageUrl(
         ...customOptions
     };
 
-    return transformImageUrl(originalUrl, options);
+    try {
+        return transformImageUrl(originalUrl, options);
+    } catch (error) {
+        // If transformation fails, return empty string instead of throwing
+        console.warn('Image transformation failed:', error);
+        return '';
+    }
 }
 
 /**
@@ -454,42 +465,62 @@ export const ImageHelper = {
     /**
      * Get avatar/profile image URL
      */
-    avatar: (url: string, size: ImageSize = 'thumbnail') =>
-        getImageUrl(url, size, { fit: 'cover', position: 'center' }),
+    avatar: (url: string, size: ImageSize = 'thumbnail') => {
+        if (!url || url.trim() === '') return '';
+        return getImageUrl(url, size, { fit: 'cover', position: 'center' });
+    },
 
     /**
      * Get cover image URL
      */
-    cover: (url: string, size: ImageSize = 'large') =>
-        getImageUrl(url, size, { fit: 'cover', position: 'center' }),
+    cover: (url: string, size: ImageSize = 'large') => {
+        if (!url || url.trim() === '') return '';
+        return getImageUrl(url, size, { fit: 'cover', position: 'center' });
+    },
 
     /**
      * Get thumbnail URL
      */
-    thumbnail: (url: string) =>
-        getImageUrl(url, 'thumbnail', { fit: 'cover', position: 'center' }),
+    thumbnail: (url: string) => {
+        if (!url || url.trim() === '') return '';
+        return getImageUrl(url, 'thumbnail', { fit: 'cover', position: 'center' });
+    },
 
     /**
      * Get gallery image URL
      */
-    gallery: (url: string, size: ImageSize = 'medium') =>
-        getImageUrl(url, size, { fit: 'cover', position: 'center' }),
+    gallery: (url: string, size: ImageSize = 'medium') => {
+        if (!url || url.trim() === '') return '';
+        return getImageUrl(url, size, { fit: 'cover', position: 'center' });
+    },
 
     /**
      * Get hero/banner image URL
      */
-    hero: (url: string) =>
-        getImageUrl(url, 'full', { fit: 'cover', position: 'center' }),
+    hero: (url: string) => {
+        if (!url || url.trim() === '') return '';
+        return getImageUrl(url, 'full', { fit: 'cover', position: 'center' });
+    },
 
     /**
      * Get responsive image URLs for different screen sizes
      */
-    responsive: (url: string) => ({
-        mobile: getImageUrl(url, 'small', { w: 480, h: 320, fit: 'cover' }),
-        tablet: getImageUrl(url, 'medium', { w: 768, h: 512, fit: 'cover' }),
-        desktop: getImageUrl(url, 'large', { w: 1200, h: 800, fit: 'cover' }),
-        retina: getImageUrl(url, 'full', { w: 1920, h: 1280, fit: 'cover' })
-    })
+    responsive: (url: string) => {
+        if (!url || url.trim() === '') {
+            return {
+                mobile: '',
+                tablet: '',
+                desktop: '',
+                retina: ''
+            };
+        }
+        return {
+            mobile: getImageUrl(url, 'small', { w: 480, h: 320, fit: 'cover' }),
+            tablet: getImageUrl(url, 'medium', { w: 768, h: 512, fit: 'cover' }),
+            desktop: getImageUrl(url, 'large', { w: 1200, h: 800, fit: 'cover' }),
+            retina: getImageUrl(url, 'full', { w: 1920, h: 1280, fit: 'cover' })
+        };
+    }
 };
 
 // Export types for external use

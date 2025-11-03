@@ -3,6 +3,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { JoinedCompetitionsProvider } from "@/contexts/JoinedCompetitionsContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import ModalProvider from "@/providers/modal-provider";
 import { authRoutes, isPublicRoute } from "@/routes";
@@ -36,13 +37,15 @@ export interface MyRouterContext {
 export const Route = createRootRoute<MyRouterContext>({
   component: () => (
     <AuthProvider>
-      <NuqsAdapter>
-        <ModalProvider>
-          <NotificationProvider>
-            <AppShell />
-          </NotificationProvider>
-        </ModalProvider>
-      </NuqsAdapter>
+      <JoinedCompetitionsProvider>
+        <NuqsAdapter>
+          <ModalProvider>
+            <NotificationProvider>
+              <AppShell />
+            </NotificationProvider>
+          </ModalProvider>
+        </NuqsAdapter>
+      </JoinedCompetitionsProvider>
     </AuthProvider>
   ),
 });

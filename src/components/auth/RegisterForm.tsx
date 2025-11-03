@@ -11,13 +11,15 @@ import { useToast } from "@/hooks/use-toast";
 import { authPages } from "@/routes";
 import { authApi, isApiSuccess } from "@/lib/api";
 import { Link, useSearch } from "@tanstack/react-router";
+import LoginWithGoogle from "./LoginWithGoogle";
 
 interface RegisterFormProps {
   callbackURL?: string;
   onSuccess?: () => void;
+  referralCode?: string;
 }
 
-export function RegisterForm({ callbackURL: propCallbackURL, onSuccess }: RegisterFormProps = {}) {
+export function RegisterForm({ callbackURL: propCallbackURL, onSuccess, referralCode }: RegisterFormProps = {}) {
   const { handleRegister, isLoading } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
@@ -106,6 +108,7 @@ export function RegisterForm({ callbackURL: propCallbackURL, onSuccess }: Regist
         password: step1Data.password,
         rememberMe: true,
         callbackURL: authPages.login,
+        referralCode: referralCode,
       });
       toast({
         title: "Registration Successful!",
@@ -138,6 +141,25 @@ export function RegisterForm({ callbackURL: propCallbackURL, onSuccess }: Regist
   if (currentStep === 1) {
     return (
       <div className="space-y-4">
+        {/* Google Sign-in Option */}
+        <div className="space-y-4">
+          <LoginWithGoogle 
+            callbackURL={callbackURL} 
+            loginAs="MODEL" 
+            referralCode={referralCode}
+          />
+          
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={step1Form.handleSubmit(onStep1Submit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>

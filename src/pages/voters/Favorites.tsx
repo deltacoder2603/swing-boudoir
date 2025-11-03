@@ -18,114 +18,23 @@ import {
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-interface FavoriteModel {
-  id: string;
-  name: string;
-  profileImage: string;
-  bio: string;
-  location: string;
-  joinedDate: string;
-  totalVotes: number;
-  activeContests: number;
-  isOnline: boolean;
-  categories: string[];
-  recentPhotos: string[];
-  lastActive: string;
-}
+import { useFavorites, useRemoveFavorite } from '@/hooks/api/useFavorites';
 
 export function Favorites() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [favorites, setFavorites] = useState<FavoriteModel[]>([]);
-  const [filteredFavorites, setFilteredFavorites] = useState<FavoriteModel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch favorites from API
+  const { data: favoritesData, isLoading } = useFavorites(user?.profile?.id);
+  const removeFavoriteMutation = useRemoveFavorite();
+  
+  const favorites = favoritesData?.favorites || [];
+  const [filteredFavorites, setFilteredFavorites] = useState(favorites);
 
   const categories = ['all', 'boudoir', 'fashion', 'portrait', 'artistic', 'commercial'];
 
-  useEffect(() => {
-    // Fetch favorite models from API
-    const fetchFavorites = async () => {
-      try {
-        // TODO: Replace with actual API call
-        // const response = await getFavoriteModels(user?.profile?.id);
-        // setFavorites(response.data);
-        
-        // Mock data for now
-        const mockData: FavoriteModel[] = [
-          {
-            id: '1',
-            name: 'Sarah Johnson',
-            profileImage: '/api/placeholder/100/100',
-            bio: 'Professional model with 5+ years experience in fashion and boudoir photography. Known for natural beauty and authentic expressions.',
-            location: 'Los Angeles, CA',
-            joinedDate: '2023-06-15',
-            totalVotes: 1247,
-            activeContests: 3,
-            isOnline: true,
-            categories: ['boudoir', 'fashion'],
-            recentPhotos: ['/api/placeholder/200/300', '/api/placeholder/200/300', '/api/placeholder/200/300'],
-            lastActive: '2025-01-28T10:30:00Z'
-          },
-          {
-            id: '2',
-            name: 'Emma Davis',
-            profileImage: '/api/placeholder/100/100',
-            bio: 'Rising star known for her natural beauty and authentic poses. Specializes in artistic and commercial photography.',
-            location: 'New York, NY',
-            joinedDate: '2024-03-22',
-            totalVotes: 892,
-            activeContests: 2,
-            isOnline: false,
-            categories: ['artistic', 'commercial'],
-            recentPhotos: ['/api/placeholder/200/300', '/api/placeholder/200/300'],
-            lastActive: '2025-01-27T15:45:00Z'
-          },
-          {
-            id: '3',
-            name: 'Mia Rodriguez',
-            profileImage: '/api/placeholder/100/100',
-            bio: 'Versatile model specializing in artistic and conceptual photography. Pushes creative boundaries with unique concepts.',
-            location: 'Miami, FL',
-            joinedDate: '2023-11-08',
-            totalVotes: 2156,
-            activeContests: 4,
-            isOnline: true,
-            categories: ['artistic', 'conceptual', 'fashion'],
-            recentPhotos: ['/api/placeholder/200/300', '/api/placeholder/200/300', '/api/placeholder/200/300', '/api/placeholder/200/300'],
-            lastActive: '2025-01-28T09:15:00Z'
-          },
-          {
-            id: '4',
-            name: 'Alex Thompson',
-            profileImage: '/api/placeholder/100/100',
-            bio: 'Classic beauty with a modern twist. Excels in portrait and editorial photography with timeless elegance.',
-            location: 'Chicago, IL',
-            joinedDate: '2024-01-12',
-            totalVotes: 567,
-            activeContests: 1,
-            isOnline: false,
-            categories: ['portrait', 'editorial'],
-            recentPhotos: ['/api/placeholder/200/300', '/api/placeholder/200/300'],
-            lastActive: '2025-01-26T14:20:00Z'
-          }
-        ];
-        
-        setFavorites(mockData);
-        
-      } catch (error) {
-        console.error('Error fetching favorites:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user?.profile?.id) {
-      fetchFavorites();
-    }
-  }, [user?.profile?.id]);
 
   useEffect(() => {
     // Filter favorites based on search and category

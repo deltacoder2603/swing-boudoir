@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { useJoinedCompetitions } from "@/contexts/JoinedCompetitionsContext";
 import { useContests, useJoinedContests } from "@/hooks/api/useContests";
 import { useToast } from "@/hooks/use-toast";
 import { formatUsdAbbrev } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { Contest } from "@/types/contest.types";
 export function CompetitionsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { joinedCompetitions } = useJoinedCompetitions();
 
   // URL state management with nuqs
   const [search, setSearch] = useQueryState("search", { defaultValue: "" });
@@ -57,8 +59,47 @@ export function CompetitionsPage() {
   }, [search]);
 
   // Extract contests from the response
-  const allContests = [...(activeContestsData?.data || []), ...(upcomingContestsData?.data || []), ...(endedContestsData?.data || [])];
-  const joinedContests = joinedContestsData?.data || [];
+  const apiActiveContests = activeContestsData?.data || [];
+  const apiUpcomingContests = upcomingContestsData?.data || [];
+  const apiEndedContests = endedContestsData?.data || [];
+  
+  // Combine all contests from API
+  const allContests = [
+    ...apiActiveContests,
+    ...apiUpcomingContests,
+    ...apiEndedContests
+  ];
+  
+  const apiJoinedContests = joinedContestsData?.data || [];
+  
+  // Combine API joined contests with local dummy joined contests
+  const joinedContests = [
+    ...apiJoinedContests,
+    ...joinedCompetitions.map(comp => ({
+      id: comp.id,
+      name: comp.name,
+      slug: comp.slug,
+      prizePool: comp.prizePool,
+      endDate: comp.endDate,
+      startDate: new Date().toISOString(),
+      status: "ACTIVE" as const,
+      visibility: "PUBLIC" as const,
+      isFeatured: true,
+      isVerified: true,
+      isVotingEnabled: true,
+      rules: `Show your best ${comp.name.toLowerCase()} and get votes from the community!`,
+      requirements: "Must be 18+ years old",
+      images: comp.coverImage ? [{ url: comp.coverImage, id: "cover" }] : [{ url: "/placeholder.svg", id: "placeholder" }],
+      awards: [
+        { id: "award1", name: "First Place", icon: "🥇" },
+        { id: "award2", name: "Second Place", icon: "🥈" },
+        { id: "award3", name: "Third Place", icon: "🥉" }
+      ],
+      createdAt: comp.joinedAt,
+      updatedAt: comp.joinedAt,
+      winnerProfileId: null
+    }))
+  ];
 
   // Filter contests by status and search
   const filterContestsBySearch = (contests: Contest[]) => {
@@ -69,9 +110,16 @@ export function CompetitionsPage() {
     );
   };
 
-  const activeCompetitions = filterContestsBySearch(allContests.filter((contest) => getCompetitionStatus(contest) === "active"));
-  const comingSoonCompetitions = filterContestsBySearch(allContests.filter((contest) => getCompetitionStatus(contest) === "coming-soon"));
-  const endedCompetitions = filterContestsBySearch(allContests.filter((contest) => getCompetitionStatus(contest) === "ended"));
+  // Get competitions by status from API data only
+  const activeCompetitions = filterContestsBySearch(
+    allContests.filter((contest) => getCompetitionStatus(contest) === "active")
+  );
+  const comingSoonCompetitions = filterContestsBySearch(
+    allContests.filter((contest) => getCompetitionStatus(contest) === "coming-soon")
+  );
+  const endedCompetitions = filterContestsBySearch(
+    allContests.filter((contest) => getCompetitionStatus(contest) === "ended")
+  );
 
   const joinedActiveCompetitions = joinedContests.filter((contest) => getCompetitionStatus(contest) === "active");
   const joinedIds = new Set(joinedContests.map((c) => c.id));
