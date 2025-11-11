@@ -408,7 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Log OAuth callback URL only in development
       if (import.meta.env.DEV) {
-        console.log("oauthCallbackUrl", oauthCallbackUrl);
+      console.log("oauthCallbackUrl", oauthCallbackUrl);
       }
       const response = await authApi.loginWithGoogle<SocialSignInResponse>({
         provider: "google",

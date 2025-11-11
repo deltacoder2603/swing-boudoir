@@ -127,10 +127,10 @@ export function PrizeHistory() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Prize History</h1>
         {totalPrizeValue > 0 && (
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Prize Value</p>
-            <p className="text-xl font-bold text-primary">${totalPrizeValue.toLocaleString()}</p>
-          </div>
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Total Prize Value</p>
+          <p className="text-xl font-bold text-primary">${totalPrizeValue.toLocaleString()}</p>
+        </div>
         )}
       </div>
 
@@ -199,7 +199,7 @@ export function PrizeHistory() {
                     <div className="text-right space-y-1">
                       {getStatusBadge(prize.status)}
                       {prize.value !== "N/A" && prize.value !== "Achievement" && prize.value !== "Unlocked" && (
-                        <p className="text-sm font-semibold text-primary">{prize.value}</p>
+                      <p className="text-sm font-semibold text-primary">{prize.value}</p>
                       )}
                     </div>
                   </div>
@@ -270,10 +270,10 @@ export function PrizeHistory() {
                       Won: {new Date(prize.createdAt).toLocaleDateString()}
                     </div>
                     {prize.expiresAt && (
-                      <div className="flex items-center text-sm">
+                    <div className="flex items-center text-sm">
                         <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
                         Expires: {formatDistanceToNow(new Date(prize.expiresAt), { addSuffix: true })}
-                      </div>
+                    </div>
                     )}
                   </div>
                 </div>

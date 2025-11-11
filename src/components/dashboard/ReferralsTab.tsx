@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,8 +29,13 @@ const ReferralsTab = () => {
   const { user } = useAuth();
   const { data: referralStats, isLoading: isLoadingStats, error: referralStatsError, refetch: refetchStats } = useReferralStats(user?.id);
   const { data: referralLeaderboard, isLoading: isLoadingLeaderboard } = useReferralLeaderboard();
-  const { data: generatedCode, isLoading: isGeneratingCode, refetch: generateCode } = useGenerateReferralCode(user?.id);
+  const { mutateAsync: generateReferralCode, isPending: isGeneratingCode } = useGenerateReferralCode();
   const [copied, setCopied] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<{ referralCode: string; referralLink: string } | null>(null);
+
+  useEffect(() => {
+    setGeneratedCode(null);
+  }, [user?.id]);
 
 
   const handleCopy = () => {
@@ -45,11 +50,18 @@ const ReferralsTab = () => {
 
   const handleGenerateCode = async () => {
     try {
-      await generateCode();
+      if (!user?.id) {
+        toast.error("Missing user context");
+        return;
+      }
+
+      const result = await generateReferralCode(user.id);
+      setGeneratedCode(result);
       await refetchStats(); // Refresh stats to get the new code
       toast.success("Referral code generated successfully!");
     } catch (error) {
-      toast.error("Failed to generate referral code");
+      const message = error instanceof Error ? error.message : "Failed to generate referral code";
+      toast.error(message);
     }
   };
 

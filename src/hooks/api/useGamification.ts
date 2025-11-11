@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type {
   ReferralStats,
@@ -17,7 +17,10 @@ export function useReferralStats(userId: string | undefined) {
     queryKey: ["referral-stats", userId],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
-      const response = await api.get(`/referrals/${userId}/stats`);
+      const response = await api.get<ReferralStats>(`/referrals/${userId}/stats`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load referral stats");
+      }
       return response.data;
     },
     enabled: !!userId,
@@ -26,17 +29,20 @@ export function useReferralStats(userId: string | undefined) {
   });
 }
 
-export function useGenerateReferralCode(userId: string | undefined) {
-  return useQuery<{ referralCode: string; referralLink: string }>({
-    queryKey: ["referral-code", userId],
-    queryFn: async () => {
+export function useGenerateReferralCode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
       if (!userId) throw new Error("User ID required");
-      const response = await api.post(`/referrals/${userId}/code`);
+      const response = await api.post<{ referralCode: string; referralLink: string }>(`/referrals/${userId}/code`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to generate referral code");
+      }
       return response.data;
     },
-    enabled: !!userId,
-    staleTime: 300000, // Consider data stale after 5 minutes
-    cacheTime: 600000, // Keep in cache for 10 minutes
+    onSuccess: (_data, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["referral-stats", userId] });
+    },
   });
 }
 
@@ -58,10 +64,26 @@ export function useGenerateSocialSharingUrls(userId: string | undefined, customM
     queryKey: ["social-sharing-urls", userId, customMessage, platform],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
-      const response = await api.post(`/referrals/${userId}/social-sharing`, {
+      const response = await api.post<{
+        referralCode: string;
+        referralLink: string;
+        sharingUrls: {
+          twitter?: string;
+          facebook?: string;
+          instagram?: string;
+          whatsapp?: string;
+          telegram?: string;
+          linkedin?: string;
+          email?: string;
+        };
+        defaultMessage: string;
+      }>(`/referrals/${userId}/social-sharing`, {
         customMessage,
         platform,
       });
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to generate sharing URLs");
+      }
       return response.data;
     },
     enabled: !!userId,
@@ -74,7 +96,10 @@ export function useReferralLeaderboard(page = 1, limit = 20) {
   return useQuery<{ data: ReferralLeaderboardEntry[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
     queryKey: ["referral-leaderboard", page, limit],
     queryFn: async () => {
-      const response = await api.get(`/referrals/leaderboard?page=${page}&limit=${limit}`);
+      const response = await api.get<{ data: ReferralLeaderboardEntry[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/referrals/leaderboard?page=${page}&limit=${limit}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load referral leaderboard");
+      }
       return response.data;
     },
   });
@@ -86,8 +111,10 @@ export function useMilestoneProgress(profileId: string | undefined) {
     queryKey: ["milestone-progress", profileId],
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get(`/milestones/${profileId}/progress`);
-      // API client wraps response in { success: true, data: ... }
+      const response = await api.get<MilestoneProgress>(`/milestones/${profileId}/progress`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load milestone progress");
+      }
       return response.data;
     },
     enabled: !!profileId,
@@ -99,7 +126,10 @@ export function useProfileMilestones(profileId: string | undefined, page = 1, li
     queryKey: ["profile-milestones", profileId, page, limit],
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get(`/milestones/${profileId}?page=${page}&limit=${limit}`);
+      const response = await api.get<{ data: Milestone[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/milestones/${profileId}?page=${page}&limit=${limit}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load milestones");
+      }
       return response.data;
     },
     enabled: !!profileId,
@@ -113,7 +143,10 @@ export function useProfileAchievements(profileId: string | undefined, page = 1, 
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
       const categoryParam = category ? `&category=${category}` : "";
-      const response = await api.get(`/achievements/${profileId}?page=${page}&limit=${limit}${categoryParam}`);
+      const response = await api.get<{ data: Achievement[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/achievements/${profileId}?page=${page}&limit=${limit}${categoryParam}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load profile achievements");
+      }
       return response.data;
     },
     enabled: !!profileId,
@@ -124,7 +157,10 @@ export function useAllAchievements(page = 1, limit = 50) {
   return useQuery<{ data: Achievement[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
     queryKey: ["all-achievements", page, limit],
     queryFn: async () => {
-      const response = await api.get(`/achievements?page=${page}&limit=${limit}`);
+      const response = await api.get<{ data: Achievement[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/achievements?page=${page}&limit=${limit}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load achievements");
+      }
       return response.data;
     },
   });
@@ -136,7 +172,10 @@ export function useUnlockProgress(profileId: string | undefined) {
     queryKey: ["unlock-progress", profileId],
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get(`/unlocks/${profileId}/progress`);
+      const response = await api.get<UnlockProgress>(`/unlocks/${profileId}/progress`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load unlock progress");
+      }
       return response.data;
     },
     enabled: !!profileId,
@@ -148,7 +187,10 @@ export function useProfileUnlocks(profileId: string | undefined, page = 1, limit
     queryKey: ["profile-unlocks", profileId, page, limit],
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get(`/unlocks/${profileId}?page=${page}&limit=${limit}`);
+      const response = await api.get<{ data: UnlockedContent[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/unlocks/${profileId}?page=${page}&limit=${limit}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load unlocks");
+      }
       return response.data;
     },
     enabled: !!profileId,
@@ -161,7 +203,10 @@ export function useVoterLeaderboard(profileId: string | undefined, page = 1, lim
     queryKey: ["voter-leaderboard", profileId, page, limit],
     queryFn: async () => {
       if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get(`/votes/${profileId}/voter-leaderboard?page=${page}&limit=${limit}`);
+      const response = await api.get<{ data: VoterLeaderboardEntry[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`/votes/${profileId}/voter-leaderboard?page=${page}&limit=${limit}`);
+      if (response.success !== true) {
+        throw new Error(response.error || "Failed to load voter leaderboard");
+      }
       return response.data;
     },
     enabled: !!profileId,

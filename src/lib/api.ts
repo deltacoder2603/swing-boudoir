@@ -144,7 +144,7 @@ const apiRequest = async <T = any>(
 
     // Log API responses only in development
     if (import.meta.env.DEV) {
-      console.log(`API Response: ${response.status} ${response.statusText}`, responseData);
+    console.log(`API Response: ${response.status} ${response.statusText}`, responseData);
     }
 
     // Handle successful responses
