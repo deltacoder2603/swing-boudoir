@@ -5,7 +5,7 @@ import { Modal, ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHea
 import { ContestParticipation } from "@/types/competitions.types";
 import { Profile } from "@/types/profile.types";
 import { Calendar, Eye, Gift, Trophy, Users } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatUsdAbbrev } from "@/lib/utils";
 import { Contest_Status } from "@/lib/validations/contest.schema";
 import { getImageUrl } from "@/lib/image-helper";
@@ -14,13 +14,13 @@ import { VoterAuthModal } from "@/components/auth/VoterAuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/api/useProfile";
 import { useCheckFreeVoteAvailability } from "@/hooks/api/useVotes";
-import { useMemo } from "react";
 
 interface BuyVotesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   participations: ContestParticipation[];
   profile: Profile;
+  preSelectedContestId?: string;
 }
 
 const formatDate = (dateString: string) => {
@@ -60,7 +60,7 @@ const formatDate = (dateString: string) => {
     }
   };
 
-export function BuyVotesModal({ open, onOpenChange, participations, profile }: BuyVotesModalProps) {
+export function BuyVotesModal({ open, onOpenChange, participations, profile, preSelectedContestId }: BuyVotesModalProps) {
   const [selectedParticipation, setSelectedParticipation] = useState<ContestParticipation | null>(null);
   const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -86,6 +86,17 @@ export function BuyVotesModal({ open, onOpenChange, participations, profile }: B
     }
     return false;
   }, [freeVoteAvailability?.available, voterProfile?.lastFreeVoteAt]);
+
+  // Auto-select participation when modal opens with preSelectedContestId
+  useEffect(() => {
+    if (open && preSelectedContestId && participations.length > 0 && isAuthenticated) {
+      const participation = participations.find(p => p.contest?.id === preSelectedContestId);
+      if (participation) {
+        setSelectedParticipation(participation);
+        setIsVoteModalOpen(true);
+      }
+    }
+  }, [open, preSelectedContestId, participations, isAuthenticated]);
 
   const handleParticipationSelect = (participation: ContestParticipation) => {
     if (!isAuthenticated) {

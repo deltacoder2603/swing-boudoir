@@ -585,9 +585,26 @@ export function PublicProfile() {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                  <Button variant="outline" onClick={shareProfile}>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      const shareUrl = `${window.location.origin}/vote/${competition.id}/${userProfile?.id}`;
+                                      navigator.clipboard.writeText(shareUrl).then(() => {
+                                        toast({
+                                          title: "Share link copied!",
+                                          description: "Share this link so people can vote for you in this competition.",
+                                        });
+                                      }).catch(() => {
+                                        toast({
+                                          title: "Failed to copy link",
+                                          description: "Please try again.",
+                                          variant: "destructive",
+                                        });
+                                      });
+                                    }}
+                                  >
                                     <Share2 className="mr-2 h-4 w-4" />
-                                    Share Profile
+                                    Share to Vote
                                   </Button>
                                   <Button variant="outline" asChild>
                                     <Link to={`/competitions/$slug`} params={{ slug: competition.slug }}>

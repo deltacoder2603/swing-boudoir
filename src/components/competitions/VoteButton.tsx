@@ -17,7 +17,7 @@ type VoteButtonProps = {
 
 export const VoteButton = ({ participant, contestId, onVoteSuccess, compact = false }: VoteButtonProps) => {
   const { user } = useAuth();
-  const [selectedVoteType, setSelectedVoteType] = useState<"free" | "single" | "pack5" | "pack10" | "custom" | null>(null);
+  const [selectedVoteType, setSelectedVoteType] = useState<"free" | "50" | "100" | "150" | "200" | "custom" | null>(null);
   const [customVoteCount, setCustomVoteCount] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
@@ -37,22 +37,30 @@ export const VoteButton = ({ participant, contestId, onVoteSuccess, compact = fa
     () => {
       return [
         { id: "free", title: "Free Vote", description: "Daily free vote", votes: 1, price: 0, icon: Gift, available: isFreeVoteAvailable },
-        { id: "single", title: "5 Votes", description: "5 votes for $1", votes: 5, price: 1, icon: Star },
+        { id: "50", title: "50 Votes", description: "50 votes", votes: 50, price: 10, icon: Star },
         {
-          id: "pack5",
-          title: "25 Votes",
-          description: "25 votes for $5",
-          votes: 25,
-          price: 5,
+          id: "100",
+          title: "100 Votes",
+          popular: true,
+          description: "100 votes",
+          votes: 100,
+          price: 20,
           icon: Star,
         },
         {
-          id: "pack10",
-          title: "50 Votes",
-          popular: true,
-          description: "50 votes for $10",
-          votes: 50,
-          price: 10,
+          id: "150",
+          title: "150 Votes",
+          description: "150 votes",
+          votes: 150,
+          price: 30,
+          icon: Star,
+        },
+        {
+          id: "200",
+          title: "200 Votes",
+          description: "200 votes",
+          votes: 200,
+          price: 40,
           icon: Star,
         },
         {
@@ -99,7 +107,11 @@ export const VoteButton = ({ participant, contestId, onVoteSuccess, compact = fa
       } else {
         // Paid vote logic
         const voteCount =
-          selectedVoteType === "single" ? 5 : selectedVoteType === "pack5" ? 25 : selectedVoteType === "pack10" ? 50 : selectedVoteType === "custom" ? customVoteCount : 0;
+          selectedVoteType === "50" ? 50 : 
+          selectedVoteType === "100" ? 100 : 
+          selectedVoteType === "150" ? 150 : 
+          selectedVoteType === "200" ? 200 : 
+          selectedVoteType === "custom" ? customVoteCount : 0;
 
         const voteData = {
           contestId: contestId,
@@ -173,7 +185,7 @@ export const VoteButton = ({ participant, contestId, onVoteSuccess, compact = fa
                             ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
                             : "border-gray-200 hover:border-blue-300 hover:bg-blue-25"
                       }`}
-                      onClick={() => !isDisabled && setSelectedVoteType(option.id as "free" | "single" | "pack5" | "pack10" | "custom")}
+                      onClick={() => !isDisabled && setSelectedVoteType(option.id as "free" | "50" | "100" | "150" | "200" | "custom")}
                     >
                       {option.popular && <Badge className="absolute -top-2 left-3 bg-orange-500 text-white text-xs">Most Popular</Badge>}
 

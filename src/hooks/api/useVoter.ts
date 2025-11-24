@@ -9,49 +9,10 @@ export interface VoterStats {
   favoriteModels: Array<{
     profileId: string;
     modelName: string;
+    username: string | null;
     voteCount: number;
     avatarUrl: string | null;
   }>;
-  currentMilestone: {
-    level: number;
-    name: string;
-    votesRequired: number;
-    isUnlocked: boolean;
-  } | null;
-  nextMilestone: {
-    level: number;
-    name: string;
-    votesRequired: number;
-    votesRemaining: number;
-    progress: number;
-  } | null;
-  achievements: Array<{
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    unlockedAt: string | null;
-    isUnlocked: boolean;
-  }>;
-  unlockedRewards: Array<{
-    id: string;
-    name: string;
-    description: string;
-    type: "PHOTO" | "VIDEO" | "AUDIO" | "CALL" | "MERCH";
-    unlockedAt: string;
-    accessUrl: string | null;
-    accessCode: string | null;
-  }>;
-  activeBadges?: Array<{
-    id: string;
-    type: string;
-    createdAt: string;
-  }>;
-  spinWheelData: {
-    availableSpins: number;
-    lastSpinAt: string | null;
-    totalSpins: number;
-  };
 }
 
 export interface VoterContest {
@@ -87,20 +48,6 @@ export interface ContestParticipant {
 
 export interface VoterProgress {
   totalVotes: number;
-  milestones: Array<{
-    level: number;
-    name: string;
-    votesRequired: number;
-    reward: string;
-    isUnlocked: boolean;
-    unlockedAt: string | null;
-  }>;
-  progressToNext: {
-    currentVotes: number;
-    nextMilestone: number;
-    votesNeeded: number;
-    percentComplete: number;
-  };
   votingHistory: Array<{
     date: string;
     voteCount: number;
@@ -108,67 +55,6 @@ export interface VoterProgress {
   }>;
 }
 
-export interface SpinWheelReward {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  probability: number;
-  popupMessage: string;
-  rewardType: string;
-  rewardValue: number | null;
-  isActive: boolean;
-  sortOrder: number;
-}
-
-export interface SpinResult {
-  reward: SpinWheelReward;
-  prizeId?: string;
-  message: string;
-}
-
-export interface CanSpinResponse {
-  canSpin: boolean;
-  nextSpinAt: string | null;
-  hasRetryPrize?: boolean;
-  retryPrizeId?: string;
-}
-
-/**
- * Get available spin wheel rewards
- */
-export function useSpinWheelRewards() {
-  return useQuery({
-    queryKey: ["spin-wheel-rewards"],
-    queryFn: async () => {
-      const response = await api.get<{ rewards: SpinWheelReward[] }>("/spin-wheel/rewards");
-      if (response.success) {
-        return response.data.rewards;
-      }
-      throw new Error(response.error || "Failed to fetch rewards");
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-}
-
-/**
- * Check if user can spin today
- */
-export function useCanSpinToday(profileId: string | undefined) {
-  return useQuery({
-    queryKey: ["can-spin", profileId],
-    queryFn: async () => {
-      if (!profileId) throw new Error("Profile ID required");
-      const response = await api.get<CanSpinResponse>(`/spin-wheel/can-spin/${profileId}`);
-      if (response.success) {
-        return response.data;
-      }
-      throw new Error(response.error || "Failed to check spin availability");
-    },
-    enabled: !!profileId,
-    staleTime: 1000 * 30, // 30 seconds
-  });
-}
 
 /**
  * Get voter statistics

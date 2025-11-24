@@ -1,17 +1,13 @@
 import { 
   Heart, 
-  Trophy, 
-  Star, 
-  Gift, 
-  Sparkles, 
+  Search,
   Settings as SettingsIcon, 
   HelpCircle, 
   FileText, 
   LogOut, 
   ChevronLeft, 
   ChevronRight,
-  Home,
-  ShoppingCart
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,12 +16,8 @@ import { useState } from "react";
 
 type VoterSection = 
   | "overview" 
-  | "competitions" 
-  | "milestones" 
-  | "achievements" 
-  | "unlocks" 
-  | "spin-wheel"
-  | "buy-votes"
+  | "competitions"
+  | "search-models"
   | "settings" 
   | "support" 
   | "official-rules";
@@ -42,11 +34,7 @@ interface VoterSidebarProps {
 const sidebarItemsMain = [
   { id: "overview" as VoterSection, label: "Overview", icon: Home },
   { id: "competitions" as VoterSection, label: "Vote in Contests", icon: Heart },
-  { id: "buy-votes" as VoterSection, label: "Buy Votes", icon: ShoppingCart },
-  { id: "milestones" as VoterSection, label: "Milestones", icon: Trophy },
-  { id: "achievements" as VoterSection, label: "Achievements", icon: Star },
-  { id: "unlocks" as VoterSection, label: "Exclusive Unlocks", icon: Gift },
-  { id: "spin-wheel" as VoterSection, label: "Spin Wheel", icon: Sparkles },
+  { id: "search-models" as VoterSection, label: "Search Models", icon: Search },
   { id: "settings" as VoterSection, label: "Settings", icon: SettingsIcon },
 ];
 

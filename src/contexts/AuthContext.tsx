@@ -397,11 +397,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      const finalRedirectUrl = callbackURL ?? DEFAULT_AFTER_LOGIN_REDIRECT;
-      // Build callback URL with redirectTo and userType so the callback page can update type
+      // Check sessionStorage for returnUrl (set by vote route)
+      const sessionReturnUrl = typeof window !== 'undefined' ? sessionStorage.getItem('oauthReturnUrl') : null;
+      const finalRedirectUrl = callbackURL || sessionReturnUrl || DEFAULT_AFTER_LOGIN_REDIRECT;
+      // Build callback URL with redirectTo and returnUrl (both for compatibility) and userType
       const baseCallback = getFullCallbackUrl("/auth/callback");
       const searchParams = new URLSearchParams();
-      if (finalRedirectUrl) searchParams.set("redirectTo", finalRedirectUrl);
+      if (finalRedirectUrl) {
+        searchParams.set("redirectTo", finalRedirectUrl);
+        searchParams.set("returnUrl", finalRedirectUrl); // Also set as returnUrl for compatibility
+      }
       if (type) searchParams.set("userType", type);
       if (referralCode) searchParams.set("referralCode", referralCode);
       const oauthCallbackUrl = `${baseCallback}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;

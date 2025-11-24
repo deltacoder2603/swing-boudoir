@@ -22,8 +22,16 @@ export function LoginForm({ callbackURL: propCallbackURL, onSuccess }: LoginForm
   const [showPassword, setShowPassword] = useState(false);
 
   // Get search params for callback URL, or use prop if provided
-  const search = useSearch({ strict: false, shouldThrow: false }) as { callback?: string };
-  const callbackURL = propCallbackURL || search.callback || "/dashboard";
+  const search = useSearch({ strict: false, shouldThrow: false }) as { callback?: string; returnUrl?: string; userType?: "MODEL" | "VOTER" };
+  // Prioritize returnUrl (used for vote links) over callback
+  // Also check sessionStorage as fallback for OAuth flow
+  const sessionReturnUrl = typeof window !== 'undefined' ? sessionStorage.getItem('oauthReturnUrl') : null;
+  const callbackURL = propCallbackURL || search.returnUrl || search.callback || sessionReturnUrl || "/dashboard";
+  
+  // Store returnUrl in sessionStorage if we have it from search params (for OAuth)
+  if (search.returnUrl && typeof window !== 'undefined') {
+    sessionStorage.setItem('oauthReturnUrl', search.returnUrl);
+  }
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -73,7 +81,7 @@ export function LoginForm({ callbackURL: propCallbackURL, onSuccess }: LoginForm
     <div className="space-y-4">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="flex flex-col gap-4">
-          <LoginWithGoogle callbackURL={callbackURL} loginAs="MODEL" />
+          <LoginWithGoogle callbackURL={callbackURL} loginAs={search.userType || "MODEL"} />
         </div>
 
         {/* Divider */}

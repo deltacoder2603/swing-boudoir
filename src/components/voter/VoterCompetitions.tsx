@@ -6,23 +6,35 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Search, Trophy, Users } from "lucide-react";
 import { useAvailableContests, useContestParticipants } from "@/hooks/api/useVoter";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { useNavigate } from "@tanstack/react-router";
+import { useCastPaidVote } from "@/hooks/api/useVotes";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface VoterCompetitionsProps {
-  userId: string | undefined;
+  profileId: string | undefined;
 }
 
-export function VoterCompetitions({ userId }: VoterCompetitionsProps) {
+export function VoterCompetitions({ profileId }: VoterCompetitionsProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [voteAmounts, setVoteAmounts] = useState<Record<string, number>>({});
   const [isVoting, setIsVoting] = useState<Record<string, boolean>>({});
+  
+  const { mutateAsync: castPaidVote } = useCastPaidVote();
 
-  const { data: contestsData, isLoading: contestsLoading } = useAvailableContests(userId);
-  const { data: participantsData, isLoading: participantsLoading } = useContestParticipants(selectedContestId || "", userId);
+  const handleProfileClick = (username: string | null) => {
+    if (username) {
+      navigate({ to: "/profile/$username", params: { username } });
+    }
+  };
+
+  const { data: contestsData, isLoading: contestsLoading } = useAvailableContests(user?.id);
+  const { data: participantsData, isLoading: participantsLoading } = useContestParticipants(selectedContestId || "", user?.id);
 
   const handleVote = async (contestId: string, voteeId: string, modelName: string) => {
-    if (!userId) {
+    if (!profileId) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to vote",
@@ -36,24 +48,31 @@ export function VoterCompetitions({ userId }: VoterCompetitionsProps) {
     setIsVoting(prev => ({ ...prev, [voteeId]: true }));
 
     try {
-      await api.post("/vote", {
-        voterId: userId,
-        voteeId: voteeId,
-        contestId: contestId,
-        count: voteCount,
-      });
+      const voteData = {
+        contestId,
+        voteeId,
+        voterId: profileId,
+        voteCount,
+      };
 
-      toast({
-        title: "Vote Cast Successfully!",
-        description: `You voted ${voteCount} time${voteCount > 1 ? 's' : ''} for ${modelName}`,
-      });
+      const result = await castPaidVote(voteData);
 
-      // Reset vote amount
-      setVoteAmounts(prev => ({ ...prev, [voteeId]: 1 }));
+      if (result && result.url) {
+        // Redirect to Stripe checkout
+        window.location.href = result.url;
+      } else {
+        console.error("Payment result:", result);
+        toast({
+          title: "Failed to initiate payment",
+          description: result?.error || "Unable to create payment session. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
+      console.error("Error processing vote:", error);
       toast({
-        title: "Vote Failed",
-        description: error.message || "Failed to cast vote",
+        title: "Failed to process vote",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -187,11 +206,23 @@ export function VoterCompetitions({ userId }: VoterCompetitionsProps) {
                   )}
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>{participant.modelName}</span>
+                      <span 
+                        className={participant.username ? "cursor-pointer hover:text-primary transition-colors" : ""}
+                        onClick={() => handleProfileClick(participant.username)}
+                      >
+                        {participant.modelName}
+                      </span>
                       <Badge variant="secondary">Rank #{participant.rank}</Badge>
                     </CardTitle>
                     <CardDescription>
-                      {participant.username && <p className="text-sm">@{participant.username}</p>}
+                      {participant.username && (
+                        <p 
+                          className="text-sm cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleProfileClick(participant.username)}
+                        >
+                          @{participant.username}
+                        </p>
+                      )}
                       {participant.bio && <p className="text-sm mt-1 line-clamp-2">{participant.bio}</p>}
                     </CardDescription>
                   </CardHeader>
@@ -229,7 +260,7 @@ export function VoterCompetitions({ userId }: VoterCompetitionsProps) {
                         disabled={isVoting[participant.profileId]}
                       >
                         {isVoting[participant.profileId] ? (
-                          "Voting..."
+                          "Processing..."
                         ) : (
                           <>
                             <Heart className="w-4 h-4 mr-2" />

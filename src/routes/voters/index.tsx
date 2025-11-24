@@ -8,11 +8,7 @@ export const Route = createFileRoute('/voters/')({
     section: z.enum([
       'overview',
       'competitions',
-      'milestones',
-      'achievements',
-      'unlocks',
-      'spin-wheel',
-      'buy-votes',
+      'search-models',
       'settings',
       'support',
       'official-rules'

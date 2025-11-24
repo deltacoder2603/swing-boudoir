@@ -6,11 +6,7 @@ import { VoterSidebar } from "@/components/voter/VoterSidebar";
 import Header from "@/components/layout/Header";
 import { VoterOverview } from "@/components/voter/VoterOverview";
 import { VoterCompetitions } from "@/components/voter/VoterCompetitions";
-import { VoterMilestones } from "@/components/voter/VoterMilestones";
-import { VoterAchievements } from "@/components/voter/VoterAchievements";
-import { VoterUnlocks } from "@/components/voter/VoterUnlocks";
-import { VoterSpinWheel } from "@/components/voter/VoterSpinWheel";
-import { VoterBuyVotes } from "@/components/voter/VoterBuyVotes";
+import { ModelSearch } from "@/components/voter/ModelSearch";
 import { Settings } from "@/components/dashboard/Settings";
 import { Support } from "@/components/dashboard/Support";
 import { OfficialRules } from "@/components/dashboard/OfficialRules";
@@ -18,12 +14,8 @@ import { useVoterStats } from "@/hooks/api/useVoter";
 
 type VoterSection = 
   | "overview" 
-  | "competitions" 
-  | "milestones" 
-  | "achievements" 
-  | "unlocks" 
-  | "spin-wheel"
-  | "buy-votes"
+  | "competitions"
+  | "search-models"
   | "settings" 
   | "support" 
   | "official-rules";
@@ -93,7 +85,7 @@ export default function VoterDashboard() {
   useEffect(() => {
     if (search?.section) {
       const validSection = search.section as VoterSection;
-      if (["overview", "competitions", "milestones", "achievements", "unlocks", "spin-wheel", "buy-votes", "settings", "support", "official-rules"].includes(validSection)) {
+      if (["overview", "competitions", "search-models", "settings", "support", "official-rules"].includes(validSection)) {
         setActiveSection(validSection);
       }
     }
@@ -154,17 +146,9 @@ export default function VoterDashboard() {
       case "overview":
         return <VoterOverview stats={stats} userId={user?.id} />;
       case "competitions":
-        return <VoterCompetitions userId={user?.id} />;
-      case "milestones":
-        return <VoterMilestones userId={user?.id} />;
-      case "achievements":
-        return <VoterAchievements stats={stats} />;
-      case "unlocks":
-        return <VoterUnlocks stats={stats} />;
-      case "spin-wheel":
-        return <VoterSpinWheel userId={user?.id} spinData={stats?.spinWheelData} />;
-      case "buy-votes":
-        return <VoterBuyVotes userId={user?.id} />;
+        return <VoterCompetitions profileId={user?.profileId} />;
+      case "search-models":
+        return <ModelSearch />;
       case "settings":
         return <Settings />;
       case "support":

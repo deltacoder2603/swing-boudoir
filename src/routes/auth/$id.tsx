@@ -16,6 +16,7 @@ interface AuthSearchParams {
   token?: string;
   error?: string;
   redirectTo?: string;
+  returnUrl?: string;
   userType?: "MODEL" | "VOTER";
   referralCode?: string;
 }
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/auth/$id")({
       token: typeof search.token === "string" ? search.token : undefined,
       error: typeof search.error === "string" ? search.error : undefined,
       redirectTo: typeof search.redirectTo === "string" ? search.redirectTo : undefined,
+      returnUrl: typeof search.returnUrl === "string" ? search.returnUrl : undefined,
       userType: search.userType === "MODEL" || search.userType === "VOTER" ? (search.userType as "MODEL" | "VOTER") : undefined,
       referralCode: typeof search.referralCode === "string" ? search.referralCode : undefined,
     };
@@ -72,7 +74,12 @@ const OAuthCallbackPage = () => {
   const search = Route.useSearch();
   const createVoterProfile = useCreateVoterProfile();
   const hasHandledRef = useRef(false);
-  const redirectTo = search.redirectTo as string | undefined;
+  // Get returnUrl from search params or sessionStorage (fallback for OAuth flow)
+  const redirectTo = (search.returnUrl || search.redirectTo || (typeof window !== 'undefined' ? sessionStorage.getItem('oauthReturnUrl') : null)) as string | undefined;
+  // Clear sessionStorage after use
+  if (typeof window !== 'undefined' && sessionStorage.getItem('oauthReturnUrl')) {
+    sessionStorage.removeItem('oauthReturnUrl');
+  }
   const desiredUserType = search.userType as "MODEL" | "VOTER" | undefined;
   const referralCode = search.referralCode as string | undefined;
 
@@ -120,8 +127,10 @@ const OAuthCallbackPage = () => {
 
         if (session.user && session.user.type === "VOTER") {
           toast.success("Successfully signed in with Google");
-          // Use window.location for voter redirect to avoid routing issues
-          window.location.href = redirectTo || "/voters/";
+          // Prioritize returnUrl if provided, otherwise go to voters dashboard
+          const voterRedirect = redirectTo || "/voters";
+          // Use navigate for proper React Router handling
+          navigate({ to: voterRedirect as any, replace: true });
           return;
         }
 

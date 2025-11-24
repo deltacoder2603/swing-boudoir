@@ -33,7 +33,7 @@ const Auth: React.FC<AuthProps> = ({ defaultMode, referralCode }) => {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const location = useLocation();
-  const search = useSearch({ strict: false }) as { type?: "MODEL" | "VOTER"; referralCode?: string };
+  const search = useSearch({ strict: false }) as { type?: "MODEL" | "VOTER"; referralCode?: string; returnUrl?: string };
   
   // Determine if we're in sign-in mode based on route or props
   const isSignInRoute = location.pathname.includes('/auth/sign-in');
@@ -44,9 +44,21 @@ const Auth: React.FC<AuthProps> = ({ defaultMode, referralCode }) => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.navigate({ to: "/dashboard/$section", params: { section: "notifications" } });
+      // Check returnUrl from search params or sessionStorage (fallback for OAuth)
+      const returnUrl = search.returnUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('oauthReturnUrl') : null);
+      if (returnUrl) {
+        // Clear sessionStorage after use
+        if (typeof window !== 'undefined' && sessionStorage.getItem('oauthReturnUrl')) {
+          sessionStorage.removeItem('oauthReturnUrl');
+        }
+        router.navigate({ to: returnUrl as any, replace: true });
+      } else if (isVoter) {
+        router.navigate({ to: "/voters", replace: true });
+      } else {
+        router.navigate({ to: "/dashboard/$section", params: { section: "notifications" } });
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, search.returnUrl, isVoter]);
 
   const isSignIn = isSignInRoute || defaultMode === "sign-in";
   const cardTitle = isSignIn ? "Welcome Back" : (isVoter ? "Join as Voter" : "Get Started");

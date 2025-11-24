@@ -5,20 +5,32 @@ import PublicProfilePage from "@/pages/PublicProfilePage";
 import { Profile } from "@/types/profile.types";
 import { createFileRoute } from "@tanstack/react-router";
 import { DollarSign, Menu, Share } from "lucide-react";
+import { z } from "zod";
 
 
 export const Route = createFileRoute("/_public/profile/$username")({
+  validateSearch: z.object({
+    contestId: z.string().optional(),
+    autoOpenVote: z.boolean().optional(),
+  }),
   beforeLoad: async ({ params }) => {
     const { username } = params;
-    const profile = await profileApi.getProfileByUsername(username);
-    if (!profile) {
-      const error = new Error("Profile not found");
-      error.name = "PROFILE_NOT_FOUND";
+    console.log("Loading profile for username:", username);
+    try {
+      const profile = await profileApi.getProfileByUsername(username);
+      if (!profile) {
+        console.error("Profile not found for username:", username);
+        const error = new Error(`Profile not found for username: ${username}`);
+        error.name = "PROFILE_NOT_FOUND";
+        throw error;
+      }
+      console.log("Profile loaded successfully:", profile.user?.username, profile.user?.displayUsername);
+      return {profile};
+    } catch (error) {
+      console.error("Error loading profile for username:", username, error);
+      // Re-throw the error to trigger the errorComponent
       throw error;
     }
-
-
-    return {profile};
   },
   // non-blocking, runs after profile is loaded
   loader: async ({ context }) => {

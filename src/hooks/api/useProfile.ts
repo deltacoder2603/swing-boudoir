@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, isApiSuccess } from '@/lib/api';
 import type { ProfileSelectSchemaType } from '@/lib/validations/profile.schema';
 import { ProfileInsertSchema } from '@/lib/validations/profile.schema';
 import { ContestParticipation, User_Type } from '@/types';
@@ -90,9 +90,18 @@ export const profileApi = {
   },
 
   // Get profile by username
-  getProfileByUsername: async (username: string): Promise<Profile> => {
-    const response = await api.get(`/api/v1/profile/username/${username}`);
-    return response.data;
+  getProfileByUsername: async (username: string): Promise<Profile | null> => {
+    try {
+      const response = await api.get<Profile>(`/api/v1/profile/username/${username}`);
+      if (!isApiSuccess(response)) {
+        console.error("API returned error for username:", username, response);
+        return null;
+      }
+      return response.data;
+    } catch (error) {
+      console.error("Exception in getProfileByUsername for username:", username, error);
+      return null;
+    }
   },
 
   // Create profile
