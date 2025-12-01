@@ -12,12 +12,9 @@ interface VoterBuyVotesProps {
   userId: string | undefined;
 }
 
-// Calculate price based on backend pricing tiers
+// Calculate price based on backend pricing: $1 = 1 vote
 const calculatePrice = (votes: number): number => {
-  if (votes >= 100) return votes * 0.15;
-  else if (votes >= 50) return votes * 0.16;
-  else if (votes >= 25) return votes * 0.18;
-  else return votes * 0.20;
+  return votes * 1.0; // $1.00 per vote
 };
 
 const VOTE_PACKAGES = [
@@ -29,7 +26,7 @@ const VOTE_PACKAGES = [
     popular: false,
     icon: Sparkles,
     color: "from-blue-400 to-blue-600",
-    features: ["5 votes", "Standard processing", "No expiry", "$0.20 per vote"]
+    features: ["5 votes", "Standard processing", "No expiry", "$1.00 per vote"]
   },
   {
     id: "popular",
@@ -39,7 +36,7 @@ const VOTE_PACKAGES = [
     popular: true,
     icon: TrendingUp,
     color: "from-purple-400 to-pink-600",
-    features: ["25 votes", "Priority processing", "No expiry", "$0.18 per vote", "10% savings"]
+    features: ["25 votes", "Priority processing", "No expiry", "$1.00 per vote"]
   },
   {
     id: "premium",
@@ -49,7 +46,7 @@ const VOTE_PACKAGES = [
     popular: false,
     icon: Zap,
     color: "from-orange-400 to-red-600",
-    features: ["50 votes", "VIP processing", "No expiry", "$0.16 per vote", "20% savings"]
+    features: ["50 votes", "VIP processing", "No expiry", "$1.00 per vote"]
   },
   {
     id: "mega",
@@ -59,7 +56,7 @@ const VOTE_PACKAGES = [
     popular: false,
     icon: TrendingUp,
     color: "from-green-400 to-emerald-600",
-    features: ["100 votes", "Instant processing", "No expiry", "$0.15 per vote", "25% savings", "Best value!"]
+    features: ["100 votes", "Instant processing", "No expiry", "$1.00 per vote", "Best value!"]
   }
 ];
 
@@ -235,7 +232,7 @@ export function VoterBuyVotes({ userId }: VoterBuyVotesProps) {
                   </div>
                   <CardTitle className="text-xl">{pkg.name}</CardTitle>
                   <CardDescription className="text-3xl font-bold text-foreground mt-2">
-                    ${pkg.price}
+                    ${pkg.price.toFixed(2)}
                   </CardDescription>
                   <p className="text-sm text-muted-foreground">{pkg.votes} votes</p>
                 </CardHeader>

@@ -36,14 +36,14 @@ const VoteModal = ({ open, onOpenChange, participation, profile, voterProfile, i
     () => {
       return [
         { id: "free", title: "Free Vote", description: "Daily free vote", votes: 1, price: 0, icon: Gift, available: isFreeVoteAvailable },
-        { id: "50", title: "50 Votes", description: "50 votes", votes: 50, price: 10, icon: Star },
+        { id: "50", title: "50 Votes", description: "50 votes", votes: 50, price: 50, icon: Star },
         {
           id: "100",
           title: "100 Votes",
           popular: true,
           description: "100 votes",
           votes: 100,
-          price: 20,
+          price: 100,
           icon: Star,
         },
         {
@@ -51,7 +51,7 @@ const VoteModal = ({ open, onOpenChange, participation, profile, voterProfile, i
           title: "150 Votes",
           description: "150 votes",
           votes: 150,
-          price: 30,
+          price: 150,
           icon: Star,
         },
         {
@@ -59,7 +59,7 @@ const VoteModal = ({ open, onOpenChange, participation, profile, voterProfile, i
           title: "200 Votes",
           description: "200 votes",
           votes: 200,
-          price: 40,
+          price: 200,
           icon: Star,
         },
         {
@@ -67,7 +67,7 @@ const VoteModal = ({ open, onOpenChange, participation, profile, voterProfile, i
           title: "Custom Votes",
           description: "Choose your own number of votes",
           votes: customVoteCount,
-          price: customVoteCount * 0.2, // $0.20 per vote
+          price: customVoteCount * 1.0, // $1.00 per vote
           icon: Star,
           isCustom: true,
         },
