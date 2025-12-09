@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Bot, Command, Frame, LifeBuoy, Map, PieChart, Send, Settings2, SquareTerminal, User, CreditCard, Zap, Trophy, Heart, Bell } from "lucide-react";
+import { BookOpen, Bot, Command, Frame, LifeBuoy, Map, PieChart, Send, Settings2, SquareTerminal, User, CreditCard, Zap, Trophy, Heart, Bell, Gift, Target, Star, Unlock, Users, Image, FileText, Award, TrendingUp, CheckCircle, Search } from "lucide-react";
 
 import { NavMain } from "@/components/admin/sidebar/nav-main";
 import { NavProjects } from "@/components/admin/sidebar/nav-projects";
@@ -80,6 +80,95 @@ const data = {
       title: "Notifications",
       url: "/admin/notifications",
       icon: Bell,
+    },
+    {
+      title: "Spin Wheel",
+      url: "/admin/spin-wheel",
+      icon: Gift,
+      items: [
+        {
+          title: "Rewards",
+          url: "/admin/spin-wheel/rewards",
+        },
+        {
+          title: "Spin History",
+          url: "/admin/spin-wheel/history",
+        },
+        {
+          title: "Active Prizes",
+          url: "/admin/spin-wheel/prizes",
+        },
+      ],
+    },
+    {
+      title: "Milestones",
+      url: "/admin/milestones",
+      icon: Target,
+      items: [
+        {
+          title: "All Milestones",
+          url: "/admin/milestones",
+        },
+        {
+          title: "Voter Model Milestones",
+          url: "/admin/milestones/voter-model",
+        },
+      ],
+    },
+    {
+      title: "Achievements",
+      url: "/admin/achievements",
+      icon: Star,
+      items: [
+        {
+          title: "All Achievements",
+          url: "/admin/achievements",
+        },
+        {
+          title: "Profile Achievements",
+          url: "/admin/achievements/profile-achievements",
+        },
+      ],
+    },
+    {
+      title: "Unlocks",
+      url: "/admin/unlocks",
+      icon: Unlock,
+    },
+    {
+      title: "Referrals",
+      url: "/admin/referrals",
+      icon: Users,
+    },
+    {
+      title: "Favorites",
+      url: "/admin/favorites",
+      icon: Heart,
+    },
+    {
+      title: "Awards",
+      url: "/admin/awards",
+      icon: Award,
+    },
+    {
+      title: "Media",
+      url: "/admin/media",
+      icon: Image,
+    },
+    {
+      title: "Contest Participations",
+      url: "/admin/contest-participations",
+      icon: CheckCircle,
+    },
+    {
+      title: "Profile Stats",
+      url: "/admin/profile-stats",
+      icon: TrendingUp,
+    },
+    {
+      title: "Export",
+      url: "/admin/export",
+      icon: FileText,
     },
   ],
   navSecondary: [
